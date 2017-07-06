@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
                 src += tmp;
                 src += "\n";
             }
-        }  // std::string tmp
+        }
 
         ast::moduleAST result;
         auto first = src.begin();
@@ -40,7 +40,9 @@ int main(int argc, char** argv) {
         if (succces && first == src.end()) {
             std::cout << "ok" << std::endl;
         } else {
-            std::cerr << *first << std::endl;
+            /* ToDo
+             *  error handring
+             *  */
             throw std::string("syntax error");
         }
     } catch (const std::string& e) {

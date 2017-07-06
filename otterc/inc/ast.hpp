@@ -30,18 +30,38 @@ namespace otter{
             public:
             baseAST(AstID id):ID(id){}
             virtual ~baseAST(){}
-            AstID getValueID() const {
+            inline auto getId() const -> AstID {
                 return this->ID;
             }
         };
 
-        struct functionAST : public baseAST{
-            int Val;
-            functionAST():baseAST(AstID::FunctionID){};
+        struct statementsAST : public baseAST{
+            statementsAST():baseAST(AstID::StatementsID){};
+            static inline bool classof(baseAST const base){}
+                return base->getValueID() == AstID::StatementsID;
+            }
         };
+        struct functionAST : public baseAST{
+            std::vector<statementsAST> statements;
+            functionAST():baseAST(AstID::FunctionID){};
+            static inline bool classof(baseAST const base){}
+                return base->getValueID() == AstID::FunctionID;
+            }
+            auto getStatements
+        };
+
+        struct 
         struct moduleAST : public baseAST{
-            std::vector<functionAST> Func;
+            std::vector<global
+            std::vector<functionAST> Funcs;
             moduleAST():baseAST(AstID::ModuleID){};
+            static inline bool classof(baseAST const base){}
+                return base->getValueID() == AstID::moduleAST;
+            }
+
+            auto getFuncs() -> std::vector<functionAST>& {
+                return this-> Funcs;
+            }
         };
 
 
