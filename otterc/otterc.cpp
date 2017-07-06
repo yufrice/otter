@@ -2,7 +2,7 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <fstream>
-#include "parser.hpp"
+#include "otterc.hpp"
 
 int main(int argc, char** argv) {
     using namespace boost::spirit;
