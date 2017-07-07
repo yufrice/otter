@@ -2,7 +2,7 @@
 #define OTTER_HELPER_HPP
 
 #include <boost/spirit/home/x3.hpp>
-#include "ast.hpp"
+#include "../ast/ast.hpp"
 
 namespace otter{
     namespace parser{
@@ -14,16 +14,12 @@ namespace otter{
                 };
             }
 
-            inline auto numberAssign(){
+            template<typename T>
+            decltype(auto) sharedAssign(){
                 return [](auto& ctx){
-                    x3::_val(ctx) = new ast::intNumberAST(_attr(ctx));
+                    std::cout << typeid(_attr(ctx)).name();
+                    // x3::_val(ctx) = std::move(std::make_shared<T>(x3::_attr(ctx)));
                 };
-            }
-
-            inline auto addAssign(){
-                return [](auto& ctx){
-                    x3::_val(ctx)->push(x3::_attr(ctx))
-                }
             }
 
             template<typename T>

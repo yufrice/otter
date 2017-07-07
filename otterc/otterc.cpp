@@ -2,6 +2,8 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <fstream>
+#include <memory>
+#include <vector>
 #include "otterc.hpp"
 
 int main(int argc, char** argv) {
@@ -33,18 +35,20 @@ int main(int argc, char** argv) {
             }
         }
 
-        ast::moduleAST result;
+        std::shared_ptr<ast::moduleAST> result = nullptr;
         auto first = src.begin();
+        // auto succces = x3::phrase_parse(first, src.end(), parser::module,
+        //                                 x3::standard_wide::space);
         auto succces = x3::phrase_parse(first, src.end(), parser::module,
                                         x3::standard_wide::space, result);
-        if (succces && first == src.end()) {
-            std::cout << "ok" << std::endl;
-        } else {
-            /* ToDo
-             *  error handring
-             *  */
-            throw std::string("syntax error");
-        }
+        // if (succces && first == src.end()) {
+        //     std::cout << "ok" << std::endl;
+        // } else {
+        //     /* ToDo
+        //      *  error handring
+        //      *  */
+        //     throw std::string("syntax error");
+        // }
     } catch (const std::string& e) {
         std::cerr << "error: " << e << std::endl;
     }

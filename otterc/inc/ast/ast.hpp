@@ -1,9 +1,10 @@
-#ifndef _OTTER_AST_HPP_
-#define _OTTER_AST_HPP_
+#ifndef _OTTER_AST_AST_HPP_
+#define _OTTER_AST_AST_HPP_
 
 #include <string>
 #include <vector>
 #include <variant>
+#include <memory>
 
 namespace otter{
     namespace ast{
@@ -32,7 +33,7 @@ namespace otter{
             Nil
         };
 
-        class baseAST{
+        struct baseAST {
             private:
                 AstID ID;
             public:
@@ -60,9 +61,9 @@ namespace otter{
         struct variableAST : public baseAST {
             std::string Name;
             // TypeID Type;
-            // baseAST Val;
+            // std::shared_ptr<baseAST> Val;
 
-            variableAST():baseAST(AstID::BindID){};
+            variableAST(std::string name):baseAST(AstID::BindID),Name(name){};
             static inline bool classof(baseAST const *base){
                 return base->getID() == AstID::BindID;
             }
@@ -103,21 +104,23 @@ namespace otter{
         };
 
         struct moduleAST : public baseAST{
-            std::vector<variableAST> Vars;
-            std::vector<functionAST> Funcs;
+            std::vector<std::shared_ptr<variableAST>> Vars;
+            // std::vector<functionAST> Funcs;
+            // std::vector<std::shared_ptr<int>> Vars;
 
-            moduleAST():baseAST(AstID::ModuleID){};
+            moduleAST(std::vector<std::shared_ptr<variableAST>> a):baseAST(AstID::ModuleID), Vars(a){
+            };
             static inline bool classof(baseAST const *base) {
                 return base->getID() == AstID::ModuleID;
             }
 
-            auto getFuncs() -> std::vector<functionAST>& {
-                return this-> Funcs;
-            }
-
-            auto getVars() -> std::vector<variableAST>& {
-                return this->Vars;
-            }
+            // auto getFuncs() -> std::vector<functionAST>& {
+            //     return this-> Funcs;
+            // }
+            //
+            // auto getVars() -> std::vector<variableAST>& {
+            //     return this->Vars;
+            // }
         };
 
 
