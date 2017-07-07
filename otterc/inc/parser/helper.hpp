@@ -17,8 +17,19 @@ namespace otter{
             template<typename T>
             decltype(auto) sharedAssign(){
                 return [](auto& ctx){
-                    std::cout << typeid(_attr(ctx)).name();
-                    // x3::_val(ctx) = std::move(std::make_shared<T>(x3::_attr(ctx)));
+                    x3::_val(ctx) = std::move(std::make_shared<T>(x3::_attr(ctx)));
+                };
+            }
+
+            decltype(auto) addAST(){
+                return [](auto& ctx){
+                    x3::_val(ctx)->addAst(std::move(x3::_attr(ctx)));
+                };
+            }
+
+            decltype(auto) type(){
+                return [](auto& ctx){
+                    std::cout << typeid(x3::_attr(ctx)).name() << std::endl;
                 };
             }
 

@@ -35,20 +35,21 @@ int main(int argc, char** argv) {
             }
         }
 
-        std::shared_ptr<ast::moduleAST> result = nullptr;
+        auto result = std::make_shared<ast::moduleAST>();
         auto first = src.begin();
-        // auto succces = x3::phrase_parse(first, src.end(), parser::module,
-        //                                 x3::standard_wide::space);
         auto succces = x3::phrase_parse(first, src.end(), parser::module,
                                         x3::standard_wide::space, result);
-        // if (succces && first == src.end()) {
-        //     std::cout << "ok" << std::endl;
-        // } else {
-        //     /* ToDo
-        //      *  error handring
-        //      *  */
-        //     throw std::string("syntax error");
-        // }
+        if (succces && first == src.end()) {
+            std::cout << "ok" << std::endl;
+            for (auto p : result->Vars) {
+                std::cout << *p << std::endl;
+            }
+        } else {
+            /* ToDo
+             *  error handring
+             *  */
+            throw std::string("syntax error");
+        }
     } catch (const std::string& e) {
         std::cerr << "error: " << e << std::endl;
     }

@@ -31,8 +31,7 @@ namespace otter {
         auto const variable_def = "let" >> id[detail::sharedAssign<ast::variableAST>()];
         auto const function_def = "(" >> *statement >> ")";
         // auto const module_def = *variable >> *function;
-        auto const module_def = *variable[detail::sharedAssign<ast::moduleAST>()];
-        // auto const module_def = *test[detail::sharedAssign<ast::moduleAST>()];
+        auto const module_def = *test[detail::addAST()];
         auto const test_def = x3::int_[detail::sharedAssign<int>()];
 
         BOOST_SPIRIT_DEFINE(test,expr, statement, variable, function, module, id);

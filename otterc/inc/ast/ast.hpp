@@ -104,16 +104,19 @@ namespace otter{
         };
 
         struct moduleAST : public baseAST{
-            std::vector<std::shared_ptr<variableAST>> Vars;
+            // std::vector<std::shared_ptr<variableAST>> Vars;
             // std::vector<functionAST> Funcs;
-            // std::vector<std::shared_ptr<int>> Vars;
+            std::vector<std::shared_ptr<int>> Vars;
 
-            moduleAST(std::vector<std::shared_ptr<variableAST>> a):baseAST(AstID::ModuleID), Vars(a){
-            };
+            moduleAST():baseAST(AstID::ModuleID){};
             static inline bool classof(baseAST const *base) {
                 return base->getID() == AstID::ModuleID;
             }
 
+            template<typename T>
+            void addAst(const T& ast){
+                Vars.push_back(std::move(ast));
+            }
             // auto getFuncs() -> std::vector<functionAST>& {
             //     return this-> Funcs;
             // }
