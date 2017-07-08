@@ -15,7 +15,8 @@
 BOOST_FUSION_ADAPT_STRUCT(
         otter::ast::variableAST,
         Name,
-        Type
+        Type,
+        Val
         )
 //
 // BOOST_FUSION_ADAPT_STRUCT(

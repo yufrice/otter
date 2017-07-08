@@ -44,6 +44,7 @@ int main(int argc, char** argv) {
             for (auto p : result->Vars) {
                 std::cout << p->getName() << std::endl;
                 std::cout << p->Type << std::endl;
+                std::cout << typeid(p->Val).name() << std::endl;
             }
         } else {
             /* ToDo

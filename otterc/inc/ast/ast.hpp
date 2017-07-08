@@ -14,6 +14,7 @@ namespace otter{
             TypeID,
             ModuleID,
             NumberID,
+            StringID,
             IdentifierID,
             ExprID,
             MonoExprID,
@@ -48,7 +49,7 @@ namespace otter{
         struct numberAST : public baseAST {
             double Val;
 
-            numberAST():baseAST(AstID::NumberID){};
+            numberAST(double val):baseAST(AstID::NumberID),Val(val){};
             static inline bool classof(baseAST const *base){
                 return base->getID() == AstID::NumberID;
             }
@@ -58,18 +59,53 @@ namespace otter{
             }
         };
 
+        struct stringAST : public baseAST {
+            std::string Val;
+
+            stringAST(std::string val):baseAST(AstID::StringID),Val(val){};
+            static inline bool classof(baseAST const *base){
+                return base->getID() == AstID::StringID;
+            }
+        };
+
+        struct binaryExprAST : public baseAST{
+            std::string Op;
+            std::shared_ptr<baseAST> Lhs;
+            std::shared_ptr<baseAST> Rhs;
+
+            binaryExprAST():baseAST(AstID::BinExprID){}
+            static inline bool classof(baseAST const *base){
+                return base->getID() == AstID::BinExprID;
+            }
+        };
+
+        struct monoExprAST : public baseAST{
+            std::string Op;
+            std::shared_ptr<baseAST> Lhs;
+
+            monoExprAST():baseAST(AstID::MonoExprID){}
+            static inline bool classof(baseAST const *base){
+                return base->getID() == AstID::MonoExprID;
+            }
+        };
+
         struct variableAST : public baseAST {
             std::string Name;
             std::string Type;
-            // std::shared_ptr<baseAST> Val;
+            std::shared_ptr<baseAST> Val;
 
             variableAST(std::string name):baseAST(AstID::BindID),Name(name){};
             static inline bool classof(baseAST const *base){
                 return base->getID() == AstID::BindID;
             }
 
-            void setVal(std::string type) {
-                this->Type = type;
+            template<typename T>
+            void addAst(const T& ast){
+                this->Val = std::move(ast);
+            }
+
+            void setVal(const std::string& str){
+                    this->Type = str;
             }
 
             auto getName() -> std::string& {
@@ -80,9 +116,9 @@ namespace otter{
                 return this->Type;
             }
 
-            // auto getVal() -> baseAST& {
-            //     return this->Val;
-            // }
+            auto getVal() -> std::shared_ptr<baseAST>& {
+                return this->Val;
+            }
 
         };
 
