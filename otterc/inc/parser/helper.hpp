@@ -8,16 +8,33 @@ namespace otter{
     namespace parser{
         namespace detail{
             using namespace boost::spirit;
-            inline auto assign(){
-                return [](auto& ctx){
-                    x3::_val(ctx) = x3::_attr(ctx);
-                };
-            }
+            // inline auto assign(){
+            //     return [](auto& ctx){
+            //         x3::_val(ctx) = x3::_attr(ctx);
+            //     };
+            // }
 
             template<typename T>
             decltype(auto) sharedAssign(){
                 return [](auto& ctx){
                     x3::_val(ctx) = std::move(std::make_shared<T>(x3::_attr(ctx)));
+                };
+            }
+
+            auto assign(){
+                return [](auto& ctx,auto&& arg){
+                        x3::_val(ctx)->setVal(arg);
+                    };
+            }
+
+            template<bool hs>
+            decltype(auto) exprAssign(){
+                return [](auto& ctx){
+                    if(hs == true){
+                        x3::_val(ctx)->setLhs(std::move(_attr(ctx)));
+                    }else if(hs == false){
+                        x3::_val(ctx)->setRhs(std::move(_attr(ctx)));
+                    }
                 };
             }
 
@@ -38,17 +55,6 @@ namespace otter{
                     std::cout << typeid(x3::_attr(ctx)).name() << std::endl;
                 };
             }
-
-            template<typename T>
-                auto assign(T&& t){
-                    return std::bind(
-                            [](auto& ctx,auto&& arg){
-                            x3::_val(ctx) = std::forward<decltype(arg)>(arg);
-                            },
-                            std::placeholders::_1,
-                            std::forward<T>(t)
-                            );
-                }
         } // name space detail
     } // namespace parser
 } //namespace otter

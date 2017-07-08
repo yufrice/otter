@@ -42,9 +42,11 @@ int main(int argc, char** argv) {
         if (succces && first == src.end()) {
             std::cout << "ok" << std::endl;
             for (auto p : result->Vars) {
-                std::cout << p->getName() << std::endl;
-                std::cout << p->Type << std::endl;
-                std::cout << typeid(p->Val).name() << std::endl;
+                std::cout << p->getName() << "\t";
+                std::cout << p->Type << "\t";
+                std::cout
+                    << std::get<std::shared_ptr<ast::stringAST>>(p->Val)->Val
+                    << std::endl;
             }
         } else {
             /* ToDo

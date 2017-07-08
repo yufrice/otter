@@ -77,6 +77,20 @@ namespace otter{
             static inline bool classof(baseAST const *base){
                 return base->getID() == AstID::BinExprID;
             }
+
+            template<typename T>
+            void setLhs(const T& ast){
+                this->Lhs = std::move(ast);
+            }
+
+            template<typename T>
+            void setRhs(const T& ast){
+                this->Rhs = std::move(ast);
+            }
+
+            void setVal(const std::string& op){
+                this->Op = op;
+            }
         };
 
         struct monoExprAST : public baseAST{
@@ -87,12 +101,22 @@ namespace otter{
             static inline bool classof(baseAST const *base){
                 return base->getID() == AstID::MonoExprID;
             }
+
+            template<typename T>
+            void addAst(const T& ast){
+                this->Lhs = std::move(ast);
+            }
+
+            void setVal(const std::string& str){
+                    this->Op = str;
+            }
         };
 
+        using variableType = std::variant<std::shared_ptr<stringAST>>;
         struct variableAST : public baseAST {
             std::string Name;
             std::string Type;
-            std::shared_ptr<baseAST> Val;
+            variableType Val;
 
             variableAST(std::string name):baseAST(AstID::BindID),Name(name){};
             static inline bool classof(baseAST const *base){
@@ -116,7 +140,7 @@ namespace otter{
                 return this->Type;
             }
 
-            auto getVal() -> std::shared_ptr<baseAST>& {
+            auto getVal() -> variableType& {
                 return this->Val;
             }
 

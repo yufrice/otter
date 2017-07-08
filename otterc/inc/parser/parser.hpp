@@ -25,7 +25,7 @@ namespace otter {
         x3::rule<class number, std::shared_ptr<numberAST>> const number("number");
 
         x3::rule<class type, std::string> const type("type");
-        x3::rule<class value, std::shared_ptr<baseAST>> const value("value");
+        x3::rule<class value, std::shared_ptr<stringAST>> const value("value");
         x3::rule<class string, std::string> const string("string");
 
         auto const id_def =
@@ -33,7 +33,10 @@ namespace otter {
             ((x3::alpha | '_') >> *(x3::alnum | '_'))
             ];
 
-        auto const number_def = x3::int_ | x3::double_ | id | '(' >> expr >> ')';
+        auto const number_def = x3::int_ |
+            x3::double_ |
+            id |
+            '(' >> expr >> ')';
         auto const mulExpr_def = number >> *(
                     ("*" >> number)
                     |("/" >> number)
@@ -50,18 +53,18 @@ namespace otter {
                 |("=>" >> addExpr)
                 |(">=" >> addExpr)
                 );
-        auto const notExpr_def = boolExpr | "!" >> boolExpr;
-        auto const expr_def = notExpr >> *(
-                ("&&" >> notExpr)
-                |("||" >> notExpr)
+        auto const notExpr_def = boolExpr | x3::lit("!") >> boolExpr;
+        auto const expr_def = notExpr[detail::exprAssign<true>()] >> *(
+                (x3::lit("&&") >> notExpr[detail::exprAssign<false>()])
+                |(x3::lit("||") >> notExpr[detail::exprAssign<false>()])
                 );
-        // auto const string_def = x3::char_(""") << *(x3::char_) << x3::char_(""");
-        auto const string_def = +(x3::char_);
-        // auto const value_def = expr[detail::sharedAssign<numberAST>()] | string[detail::sharedAssign<stringAST>()];
+
+        auto const string_def = x3::lit('"') >> +((x3::char_)- x3::lit('"')) >> x3::lit('"');
         auto const value_def = string[detail::sharedAssign<stringAST>()];
         auto const type_def = "::" >> id;
         auto const statement_def = id;
-        auto const variable_def = "let" >> id[detail::sharedAssign<variableAST>()] >> type[detail::sharedAdd()] >> "=" >> value[detail::addAST()];
+        auto const variable_def = "let" >> id[detail::sharedAssign<variableAST>()] >> type[detail::sharedAdd()] >> "=" >>
+            value[detail::addAST()];
         auto const function_def = "(" >> *statement >> ")";
         // auto const module_def = *variable >> *function;
         auto const module_def = *variable[detail::addAST()];
