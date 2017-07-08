@@ -43,6 +43,7 @@ int main(int argc, char** argv) {
             std::cout << "ok" << std::endl;
             for (auto p : result->Vars) {
                 std::cout << p->getName() << std::endl;
+                std::cout << p->Type << std::endl;
             }
         } else {
             /* ToDo

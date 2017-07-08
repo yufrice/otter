@@ -2,10 +2,10 @@
 #define _OTTER_AST_ADAPT_HPP_
 
 #include <boost/fusion/include/adapt_struct.hpp>
-BOOST_FUSION_ADAPT_STRUCT(
-        otter::ast::moduleAST,
-        Vars
-        )
+// BOOST_FUSION_ADAPT_STRUCT(
+//         otter::ast::moduleAST,
+//         Vars
+//         )
 
 // BOOST_FUSION_ADAPT_STRUCT(
 //         otter::ast::numberAST,
@@ -14,7 +14,8 @@ BOOST_FUSION_ADAPT_STRUCT(
 //
 BOOST_FUSION_ADAPT_STRUCT(
         otter::ast::variableAST,
-        Name
+        Name,
+        Type
         )
 //
 // BOOST_FUSION_ADAPT_STRUCT(

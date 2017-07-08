@@ -21,6 +21,12 @@ namespace otter{
                 };
             }
 
+            decltype(auto) sharedAdd(){
+                return [](auto& ctx){
+                    x3::_val(ctx)->setVal(_attr(ctx));
+                };
+            }
+
             decltype(auto) addAST(){
                 return [](auto& ctx){
                     x3::_val(ctx)->addAst(std::move(x3::_attr(ctx)));
