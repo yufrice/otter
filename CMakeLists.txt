@@ -1,5 +1,5 @@
 project (otter)
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.5)
 
 add_subdirectory(otterc)
 add_subdirectory(test)
