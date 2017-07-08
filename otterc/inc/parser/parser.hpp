@@ -18,7 +18,6 @@ namespace otter {
         x3::rule<class statement, statementsAST> const statement("statement");
         x3::rule<class expr, std::shared_ptr<numberAST>> const expr("expr");
         // x3::rule<class type, TypeID> const type("type");
-        x3::rule<class test, std::shared_ptr<int>> const test("test");
 
         auto const id_def =
             x3::lexeme[
@@ -31,10 +30,9 @@ namespace otter {
         auto const variable_def = "let" >> id[detail::sharedAssign<ast::variableAST>()];
         auto const function_def = "(" >> *statement >> ")";
         // auto const module_def = *variable >> *function;
-        auto const module_def = *test[detail::addAST()];
-        auto const test_def = x3::int_[detail::sharedAssign<int>()];
+        auto const module_def = *variable[detail::addAST()];
 
-        BOOST_SPIRIT_DEFINE(test,expr, statement, variable, function, module, id);
+        BOOST_SPIRIT_DEFINE(expr, statement, variable, function, module, id);
 
 
     } //namespace parser

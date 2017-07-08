@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
         if (succces && first == src.end()) {
             std::cout << "ok" << std::endl;
             for (auto p : result->Vars) {
-                std::cout << *p << std::endl;
+                std::cout << p->getName() << std::endl;
             }
         } else {
             /* ToDo

@@ -104,9 +104,9 @@ namespace otter{
         };
 
         struct moduleAST : public baseAST{
-            // std::vector<std::shared_ptr<variableAST>> Vars;
+            std::vector<std::shared_ptr<variableAST>> Vars;
             // std::vector<functionAST> Funcs;
-            std::vector<std::shared_ptr<int>> Vars;
+            // std::vector<std::shared_ptr<int>> Vars;
 
             moduleAST():baseAST(AstID::ModuleID){};
             static inline bool classof(baseAST const *base) {
@@ -115,18 +115,17 @@ namespace otter{
 
             template<typename T>
             void addAst(const T& ast){
-                if(bool(typeid(int) == typeid(*ast))){
-                    std::cout << "ok" << std::endl;
+                if(bool(typeid(variableAST) == typeid(*ast))){
+                    Vars.push_back(std::move(ast));
                 }
-                Vars.push_back(std::move(ast));
             }
             // auto getFuncs() -> std::vector<functionAST>& {
             //     return this-> Funcs;
             // }
             //
-            // auto getVars() -> std::vector<variableAST>& {
-            //     return this->Vars;
-            // }
+            auto getVars() -> std::vector<std::shared_ptr<variableAST>>& {
+                return this->Vars;
+            }
         };
 
 
