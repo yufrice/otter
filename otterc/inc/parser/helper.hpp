@@ -33,6 +33,12 @@ namespace otter{
                 };
             }
 
+            auto typeAssign(ast::TypeID id){
+                return [](auto& ctx, ast::TypeID id){
+                    x3::_val(ctx) = id;
+                };
+            }
+
             template<typename T>
                 auto assign(T&& t){
                     return std::bind(
