@@ -60,7 +60,7 @@ namespace otter{
 
         struct variableAST : public baseAST {
             std::string Name;
-            TypeID Type;
+            // TypeID Type;
             // std::shared_ptr<baseAST> Val;
 
             variableAST(std::string name):baseAST(AstID::BindID),Name(name){};
@@ -68,17 +68,13 @@ namespace otter{
                 return base->getID() == AstID::BindID;
             }
 
-            auto setType(TypeID id) -> void{
-                this->Type = id;
-            }
-
             auto getName() -> std::string& {
                 return this->Name;
             }
 
-            auto getType() -> TypeID& {
-                return this->Type;
-            }
+            // auto getType() -> TypeID& {
+            //     return this->Type;
+            // }
 
             // auto getVal() -> baseAST& {
             //     return this->Val;
