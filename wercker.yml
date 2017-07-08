@@ -5,15 +5,15 @@ build:
     # http://devcenter.wercker.com/docs/steps/index.html
   steps:
     - script:
-      name: setup
+      name: package install
       code: |
-        sudo pacman -Syu llvm clang boost gcc make cmake
+        sudo pacman --noconfirm -Sy archlinux-keyring
+        sudo pacman --noconfirm -Syu llvm clang boost gcc make cmake
 
     - script:
       name: build
       code: |
-        rm -rf ./build
-         mkdir build
+        mkdir build
         cd build
         cmake ..
         make
