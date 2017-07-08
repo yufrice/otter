@@ -1,6 +1,6 @@
 ache: true
 install:
-    - sudo apt-get -qq -y update
+  - sudo apt-get -qq -y update
   - sudo apt-get install cmake libboost-dev llvm
 script:
   - rm build_* -f -R
@@ -8,4 +8,3 @@ script:
   - cd ./build
   - cmake ..
   - make
- 
