@@ -115,6 +115,9 @@ namespace otter{
 
             template<typename T>
             void addAst(const T& ast){
+                if(bool(typeid(int) == typeid(*ast))){
+                    std::cout << "ok" << std::endl;
+                }
                 Vars.push_back(std::move(ast));
             }
             // auto getFuncs() -> std::vector<functionAST>& {
