@@ -204,8 +204,12 @@ namespace otter{
             void addAst(const auto& ast,auto& type){
                 if(type == typeid(variableAST)){
                     Vars.push_back(std::move(ast));
-                }else if(type == typeid(functionAST)){
-                    // Funcs.push_back(std::move(ast));
+                }
+            }
+
+            void addAst(const auto& ast){
+                if(typeid(ast) == typeid(functionAST)){
+                    Funcs.push_back(std::move(ast));
                 }
             }
             auto getFuncs() -> std::vector<std::shared_ptr<functionAST>>& {
