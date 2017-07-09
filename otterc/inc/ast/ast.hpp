@@ -45,6 +45,23 @@ namespace otter{
                 }
         };
 
+        struct identifierAST : public baseAST {
+            std::string Ident;
+
+            identifierAST(std::string ident):baseAST(AstID::StringID),Ident(ident){};
+            static inline bool classof(baseAST const *base){
+                return base->getID() == AstID::IdentifierID;
+            }
+        };
+
+        struct stringAST : public baseAST {
+            std::string Str;
+
+            stringAST(std::string str):baseAST(AstID::StringID),Str(str){};
+            static inline bool classof(baseAST const *base){
+                return base->getID() == AstID::StringID;
+            }
+        };
 
         struct numberAST : public baseAST {
             double Val;
@@ -59,25 +76,33 @@ namespace otter{
             }
         };
 
-        struct stringAST : public baseAST {
-            std::string Val;
+        struct binaryExprAST;
+        struct binaryExprAST;
+        struct monoExprAST;
 
-            stringAST(std::string val):baseAST(AstID::StringID),Val(val){};
-            static inline bool classof(baseAST const *base){
-                return base->getID() == AstID::StringID;
-            }
-        };
-
+        using exprType = std::variant<
+            std::shared_ptr<identifierAST>,
+            std::shared_ptr<numberAST>,
+            std::shared_ptr<binaryExprAST>,
+            std::shared_ptr<monoExprAST>
+            >;
         struct binaryExprAST : public baseAST{
             std::string Op;
-            std::shared_ptr<baseAST> Lhs;
-            std::shared_ptr<baseAST> Rhs;
+            exprType Lhs;
+            exprType Rhs;
 
             binaryExprAST():baseAST(AstID::BinExprID){}
             static inline bool classof(baseAST const *base){
                 return base->getID() == AstID::BinExprID;
             }
 
+            void addAst(const auto& ast,auto& type){
+                if(type == "lhs"){
+                    this->Lhs = std::move(ast);
+                }else if(type == "rhs"){
+                    this->Rhs = std::move(ast);
+                }
+            }
             template<typename T>
             void setLhs(const T& ast){
                 this->Lhs = std::move(ast);
@@ -95,7 +120,7 @@ namespace otter{
 
         struct monoExprAST : public baseAST{
             std::string Op;
-            std::shared_ptr<baseAST> Lhs;
+            exprType Lhs;
 
             monoExprAST():baseAST(AstID::MonoExprID){}
             static inline bool classof(baseAST const *base){
@@ -108,7 +133,7 @@ namespace otter{
             }
 
             void setVal(const std::string& str){
-                    this->Op = str;
+                this->Op = str;
             }
         };
 
@@ -155,38 +180,38 @@ namespace otter{
             }
         };
         struct functionAST : public baseAST{
-            std::vector<statementsAST> statements;
+            std::vector<std::shared_ptr<statementsAST>> statements;
 
             functionAST():baseAST(AstID::FunctionID){};
             static inline bool classof(baseAST const *base) {
                 return base->getID() == AstID::FunctionID;
             }
 
-            auto getStatements() -> std::vector<statementsAST>& {
+            auto getStatements() -> std::vector<std::shared_ptr<statementsAST>>& {
                 return this->statements;
             }
         };
 
         struct moduleAST : public baseAST{
             std::vector<std::shared_ptr<variableAST>> Vars;
-            // std::vector<functionAST> Funcs;
-            // std::vector<std::shared_ptr<int>> Vars;
+            std::vector<std::shared_ptr<functionAST>> Funcs;
 
             moduleAST():baseAST(AstID::ModuleID){};
             static inline bool classof(baseAST const *base) {
                 return base->getID() == AstID::ModuleID;
             }
 
-            template<typename T>
-            void addAst(const T& ast){
-                if(bool(typeid(variableAST) == typeid(*ast))){
+            void addAst(const auto& ast,auto& type){
+                if(type == typeid(variableAST)){
                     Vars.push_back(std::move(ast));
+                }else if(type == typeid(functionAST)){
+                    // Funcs.push_back(std::move(ast));
                 }
             }
-            // auto getFuncs() -> std::vector<functionAST>& {
-            //     return this-> Funcs;
-            // }
-            //
+            auto getFuncs() -> std::vector<std::shared_ptr<functionAST>>& {
+                return this-> Funcs;
+            }
+
             auto getVars() -> std::vector<std::shared_ptr<variableAST>>& {
                 return this->Vars;
             }

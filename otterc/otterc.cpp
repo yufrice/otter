@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
                 std::cout << p->getName() << "\t";
                 std::cout << p->Type << "\t";
                 std::cout
-                    << std::get<std::shared_ptr<ast::stringAST>>(p->Val)->Val
+                    << std::get<std::shared_ptr<ast::stringAST>>(p->Val)->Str
                     << std::endl;
             }
         } else {

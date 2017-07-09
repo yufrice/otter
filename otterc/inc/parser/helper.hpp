@@ -21,21 +21,10 @@ namespace otter{
                 };
             }
 
-            auto assign(){
-                return [](auto& ctx,auto&& arg){
+            auto assign(auto&& arg){
+                return [&arg](auto& ctx,auto&& arg){
                         x3::_val(ctx)->setVal(arg);
                     };
-            }
-
-            template<bool hs>
-            decltype(auto) exprAssign(){
-                return [](auto& ctx){
-                    if(hs == true){
-                        x3::_val(ctx)->setLhs(std::move(_attr(ctx)));
-                    }else if(hs == false){
-                        x3::_val(ctx)->setRhs(std::move(_attr(ctx)));
-                    }
-                };
             }
 
             decltype(auto) sharedAdd(){
@@ -50,9 +39,18 @@ namespace otter{
                 };
             }
 
-            decltype(auto) type(){
-                return [](auto& ctx){
-                    std::cout << typeid(x3::_attr(ctx)).name() << std::endl;
+            decltype(auto) addAST(auto&& arg){
+                return [&arg](auto& ctx){
+                    x3::_val(ctx)->addAst(std::move(x3::_attr(ctx)), arg);
+                };
+            }
+
+            decltype(auto) type(auto&& arg){
+                return [&arg](auto& ctx){
+                    std::cout << typeid(arg).name()
+                        << " : " << arg << std::endl;
+                    std::cout << typeid(x3::_attr(ctx)).name()
+                        << " : " << x3::_attr(ctx) << std::endl;
                 };
             }
         } // name space detail

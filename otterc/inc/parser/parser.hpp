@@ -53,21 +53,21 @@ namespace otter {
                 |("=>" >> addExpr)
                 |(">=" >> addExpr)
                 );
-        auto const notExpr_def = boolExpr | x3::lit("!") >> boolExpr;
-        auto const expr_def = notExpr[detail::exprAssign<true>()] >> *(
-                (x3::lit("&&") >> notExpr[detail::exprAssign<false>()])
-                |(x3::lit("||") >> notExpr[detail::exprAssign<false>()])
+        auto const notExpr_def = boolExpr | x3::lit("!")[detail::assign("!")] >> boolExpr;
+        auto const expr_def = notExpr[detail::addAST("lhs")] >> *(
+                (x3::lit("&&")[detail::assign("&&")] >> notExpr[detail::addAST("rhs")])
+                |(x3::lit("||")[detail::assign("||")] >> notExpr[detail::addAST("rhs")])
                 );
 
         auto const string_def = x3::lit('"') >> +((x3::char_)- x3::lit('"')) >> x3::lit('"');
         auto const value_def = string[detail::sharedAssign<stringAST>()];
         auto const type_def = "::" >> id;
         auto const statement_def = id;
-        auto const variable_def = "let" >> id[detail::sharedAssign<variableAST>()] >> type[detail::sharedAdd()] >> "=" >>
+        auto const variable_def = x3::lit("let") >> id[detail::sharedAssign<variableAST>()] >> type[detail::sharedAdd()] >> "=" >>
             value[detail::addAST()];
         auto const function_def = "(" >> *statement >> ")";
-        // auto const module_def = *variable >> *function;
-        auto const module_def = *variable[detail::addAST()];
+        // auto const module_def = *variable[detail::addAST("vars")] >> *function[detail::addAST("funcs")];
+        auto const module_def = *variable[detail::addAST(typeid(variableAST))];
 
         BOOST_SPIRIT_DEFINE(
                 value, string, type,
