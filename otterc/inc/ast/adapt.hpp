@@ -8,27 +8,6 @@ BOOST_FUSION_ADAPT_STRUCT(
         Funcs
         )
 
-// BOOST_FUSION_ADAPT_STRUCT(
-//         otter::ast::numberAST,
-//         Val
-//         )
-//
-BOOST_FUSION_ADAPT_STRUCT(
-        otter::ast::variableAST,
-        Name,
-        Type,
-        Val
-        )
 
-BOOST_FUSION_ADAPT_STRUCT(
-        otter::ast::statementsAST,
-        statement
-        )
-
-
-BOOST_FUSION_ADAPT_STRUCT(
-        otter::ast::functionAST,
-        statements
-        )
 
 #endif

@@ -48,6 +48,14 @@ int main(int argc, char** argv) {
                     << std::get<std::shared_ptr<ast::stringAST>>(p->Val)->Str
                     << std::endl;
             }
+            for (auto p : result->Funcs) {
+                std::cout << p->Name << "\n";
+                for (auto s : p->Statements) {
+                    std::cout << s->Statement << "\t";
+                    std::cout << s->Arg << "\n";
+                }
+                std::cout << "\n";
+            }
         } else {
             /* ToDo
              *  error handring

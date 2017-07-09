@@ -172,23 +172,35 @@ namespace otter{
         };
 
         struct statementsAST : public baseAST{
-            std::string statement;
+            std::string Statement;
+            std::string Arg;
 
-            statementsAST():baseAST(AstID::StatementsID){};
+            statementsAST(std::string stt):baseAST(AstID::StatementsID),Statement(stt){};
             static inline bool classof(baseAST const *base){
                 return base->getID() == AstID::StatementsID;
             }
-        };
-        struct functionAST : public baseAST{
-            std::vector<std::shared_ptr<statementsAST>> statements;
 
-            functionAST():baseAST(AstID::FunctionID){};
+            void setVal(const std::string& arg){
+                this->Arg = arg;
+            }
+        };
+
+        struct functionAST : public baseAST{
+            std::string Name;
+            std::vector<std::shared_ptr<statementsAST>> Statements;
+
+            functionAST(std::string name):baseAST(AstID::FunctionID),Name(name){};
             static inline bool classof(baseAST const *base) {
                 return base->getID() == AstID::FunctionID;
             }
 
+            void addAst(const auto& ast){
+                    Statements.emplace_back(std::move(ast));
+            }
+
+
             auto getStatements() -> std::vector<std::shared_ptr<statementsAST>>& {
-                return this->statements;
+                return this->Statements;
             }
         };
 
@@ -202,13 +214,13 @@ namespace otter{
             }
 
             void addAst(const auto& ast,auto& type){
-                if(type == typeid(variableAST)){
+                if(std::is_convertible<decltype(ast), std::shared_ptr<variableAST>>::value == true){
                     Vars.push_back(std::move(ast));
                 }
             }
 
             void addAst(const auto& ast){
-                if(typeid(ast) == typeid(functionAST)){
+                if(std::is_convertible<decltype(ast), std::shared_ptr<functionAST>>::value == true){
                     Funcs.push_back(std::move(ast));
                 }
             }

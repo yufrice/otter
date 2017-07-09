@@ -13,9 +13,9 @@ namespace otter {
 
         x3::rule<class id, std::string> const id("id");
         x3::rule<class modules, std::shared_ptr<moduleAST>> const module("module");
-        x3::rule<class function, functionAST> const function("function");
+        x3::rule<class function, std::shared_ptr<functionAST>> const function("function");
         x3::rule<class variable, std::shared_ptr<variableAST>> const variable("variable");
-        x3::rule<class statement, statementsAST> const statement("statement");
+        x3::rule<class statement, std::shared_ptr<statementsAST>> const statement("statement");
 
         x3::rule<class expr, std::shared_ptr<binaryExprAST>> const expr("expr");
         x3::rule<class notExpr, std::shared_ptr<monoExprAST>> const notExpr("notExpr");
@@ -62,12 +62,11 @@ namespace otter {
         auto const string_def = x3::lit('"') >> +((x3::char_)- x3::lit('"')) >> x3::lit('"');
         auto const value_def = string[detail::sharedAssign<stringAST>()];
         auto const type_def = "::" >> id;
-        auto const statement_def = id;
+        auto const statement_def = id[detail::sharedAssign<statementsAST>()] >> (id[detail::sharedAdd()] | string[detail::sharedAdd()]);
         auto const variable_def = x3::lit("let") >> id[detail::sharedAssign<variableAST>()] >> type[detail::sharedAdd()] >> "=" >>
             value[detail::addAST()];
-        auto const function_def = "(" >> *statement >> ")";
-        // auto const module_def = *variable[detail::addAST("vars")] >> *function[detail::addAST("funcs")];
-        auto const module_def = *variable[detail::addAST(typeid(variableAST))];
+        auto const function_def = "let" >> id[detail::sharedAssign<functionAST>()] >>"()" >> "{"  >> *statement[detail::addAST()] >> "}";
+        auto const module_def = *variable[detail::addAST(typeid(variableAST))] >> *function[detail::addAST()];
 
         BOOST_SPIRIT_DEFINE(
                 value, string, type,
