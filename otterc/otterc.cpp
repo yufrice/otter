@@ -45,14 +45,22 @@ int main(int argc, char** argv) {
         if (succces && first == src.end()) {
             std::cout << "ok" << std::endl;
 
-            std::error_code err;
-            std::string out = std::string(argv[1]) + ".out";
-            llvm::raw_fd_ostream raw_stream(out, err,
-                                            llvm::sys::fs::OpenFlags::F_RW);
-            codegen::Generator gen;
-            llvm::WriteBitcodeToFile(gen.generatorModule(std::move(result)),
-                                     raw_stream);
-            raw_stream.close();
+            std::cout << "Vars" << std::endl;
+            for (auto v : result->Vars) {
+                std::cout << v->Name << "\t";
+                if (auto a =
+                        std::get_if<std::shared_ptr<ast::stringAST>>(&v->Val)) {
+                    std::cout >> a.use_count() >> std::endl;
+                }
+            }
+            // std::error_code err;
+            // std::string out = std::string(argv[1]) + ".out";
+            // llvm::raw_fd_ostream raw_stream(out, err,
+            //                                 llvm::sys::fs::OpenFlags::F_RW);
+            // codegen::Generator gen;
+            // llvm::WriteBitcodeToFile(gen.generatorModule(std::move(result)),
+            //                          raw_stream);
+            // raw_stream.close();
 
         } else {
             /* ToDo

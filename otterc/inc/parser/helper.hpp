@@ -15,8 +15,8 @@ namespace otter{
             }
 
             inline auto assign(auto&& arg){
-                return [&arg](auto& ctx,auto&& arg){
-                        x3::_val(ctx)->setVal(arg);
+                return [&arg](auto& ctx){
+                        x3::_val(ctx) = arg;
                     };
             }
 
@@ -41,6 +41,12 @@ namespace otter{
                 };
             }
 
+            decltype(auto) sharedAdd(auto& arg){
+                return [&arg](auto& ctx){
+                    x3::_val(ctx)->setVal(arg);
+                };
+            }
+
             decltype(auto) addAST(){
                 return [](auto& ctx){
                     x3::_val(ctx)->addAst(std::move(x3::_attr(ctx)));
@@ -57,6 +63,13 @@ namespace otter{
                 return [](auto& ctx){
                     std::cout << typeid(x3::_attr(ctx)).name()
                         << " : " << x3::_attr(ctx) << std::endl;
+                };
+            }
+
+            decltype(auto) type(auto& arg){
+                return [&arg](auto& ctx){
+                    std::cout << typeid(arg).name()
+                        << " : " << arg << std::endl;
                 };
             }
         } // name space detail

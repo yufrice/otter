@@ -5,6 +5,7 @@
 #include <vector>
 #include <variant>
 #include <memory>
+#include <iostream>
 
 namespace otter{
     namespace ast{
@@ -26,7 +27,7 @@ namespace otter{
             WhileStatementID,
         };
 
-        enum struct TypeID{
+        enum struct TypeID {
             Func,
             Int,
             Double,
@@ -61,6 +62,10 @@ namespace otter{
             static inline bool classof(baseAST const *base){
                 return base->getID() == AstID::StringID;
             }
+
+            auto getVal() -> std::string& {
+                return this->Str;
+            }
         };
 
         struct numberAST : public baseAST {
@@ -71,7 +76,7 @@ namespace otter{
                 return base->getID() == AstID::NumberID;
             }
 
-            auto getVals() -> double {
+            auto getVal() -> double {
                 return this->Val;
             }
         };
@@ -85,7 +90,7 @@ namespace otter{
             std::shared_ptr<numberAST>,
             std::shared_ptr<binaryExprAST>,
             std::shared_ptr<monoExprAST>
-            >;
+                >;
         struct binaryExprAST : public baseAST{
             std::string Op;
             exprType Lhs;
@@ -137,10 +142,10 @@ namespace otter{
             }
         };
 
-        using variableType = std::variant<std::shared_ptr<stringAST>>;
+        using variableType = std::variant<std::shared_ptr<stringAST>, exprType>;
         struct variableAST : public baseAST {
             std::string Name;
-            std::string Type;
+            TypeID Type;
             variableType Val;
 
             variableAST(std::string name):baseAST(AstID::BindID),Name(name){};
@@ -153,15 +158,15 @@ namespace otter{
                 this->Val = std::move(ast);
             }
 
-            void setVal(const std::string& str){
-                    this->Type = str;
+            void setVal(const TypeID& type){
+                this->Type = type;
             }
 
             auto getName() -> std::string& {
                 return this->Name;
             }
 
-            auto getType() -> std::string& {
+            auto getType() -> TypeID& {
                 return this->Type;
             }
 
