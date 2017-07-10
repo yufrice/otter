@@ -1,3 +1,6 @@
+#include <llvm/Bitcode/BitcodeWriter.h>
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/raw_ostream.h>
 #include <experimental/filesystem>
 #include <boost/program_options.hpp>
 #include <iostream>
@@ -41,21 +44,16 @@ int main(int argc, char** argv) {
                                         x3::standard_wide::space, result);
         if (succces && first == src.end()) {
             std::cout << "ok" << std::endl;
-            for (auto p : result->Vars) {
-                std::cout << p->getName() << "\t";
-                std::cout << p->Type << "\t";
-                std::cout
-                    << std::get<std::shared_ptr<ast::stringAST>>(p->Val)->Str
-                    << std::endl;
-            }
-            for (auto p : result->Funcs) {
-                std::cout << p->Name << "\n";
-                for (auto s : p->Statements) {
-                    std::cout << s->Statement << "\t";
-                    std::cout << s->Arg << "\n";
-                }
-                std::cout << "\n";
-            }
+
+            std::error_code err;
+            std::string out = std::string(argv[1]) + ".out";
+            llvm::raw_fd_ostream raw_stream(out, err,
+                                            llvm::sys::fs::OpenFlags::F_RW);
+            codegen::Generator gen;
+            llvm::WriteBitcodeToFile(gen.generatorModule(std::move(result)),
+                                     raw_stream);
+            raw_stream.close();
+
         } else {
             /* ToDo
              *  error handring

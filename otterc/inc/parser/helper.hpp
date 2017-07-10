@@ -1,5 +1,5 @@
-#ifndef OTTER_HELPER_HPP
-#define OTTER_HELPER_HPP
+#ifndef _OTTER_PARSER_HELPER_HPP_
+#define _OTTER_PARSER_HELPER_HPP_
 
 #include <boost/spirit/home/x3.hpp>
 #include "../ast/ast.hpp"
@@ -8,11 +8,17 @@ namespace otter{
     namespace parser{
         namespace detail{
             using namespace boost::spirit;
-            // inline auto assign(){
-            //     return [](auto& ctx){
-            //         x3::_val(ctx) = x3::_attr(ctx);
-            //     };
-            // }
+            inline auto assign(){
+                return [](auto& ctx){
+                    x3::_val(ctx) = x3::_attr(ctx);
+                };
+            }
+
+            inline auto assign(auto&& arg){
+                return [&arg](auto& ctx,auto&& arg){
+                        x3::_val(ctx)->setVal(arg);
+                    };
+            }
 
             template<typename T>
             decltype(auto) sharedAssign(){
@@ -28,11 +34,6 @@ namespace otter{
                 };
             }
 
-            auto assign(auto&& arg){
-                return [&arg](auto& ctx,auto&& arg){
-                        x3::_val(ctx)->setVal(arg);
-                    };
-            }
 
             decltype(auto) sharedAdd(){
                 return [](auto& ctx){
