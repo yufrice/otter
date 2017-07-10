@@ -1,0 +1,19 @@
+box: base/archlinux
+build:
+    # Steps make up the actions in your pipeline
+    # Read more about steps on our dev center:
+    # http://devcenter.wercker.com/docs/steps/index.html
+  steps:
+    - script:
+      name: package install
+      code: |
+        sudo pacman --noconfirm -Sy archlinux-keyring
+        sudo pacman --noconfirm -Syu llvm clang boost gcc make cmake
+
+    - script:
+      name: build
+      code: |
+        mkdir build
+        cd build
+        cmake ..
+        make
