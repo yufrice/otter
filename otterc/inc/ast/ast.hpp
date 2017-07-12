@@ -3,7 +3,6 @@
 
 #include <string>
 #include <vector>
-#include <variant>
 #include <memory>
 #include <iostream>
 
@@ -49,7 +48,7 @@ namespace otter{
         struct identifierAST : public baseAST {
             std::string Ident;
 
-            identifierAST(std::string ident):baseAST(AstID::StringID),Ident(ident){};
+            identifierAST(std::string ident):baseAST(AstID::IdentifierID),Ident(ident){};
             static inline bool classof(baseAST const *base){
                 return base->getID() == AstID::IdentifierID;
             }
@@ -81,33 +80,20 @@ namespace otter{
             }
         };
 
-        struct binaryExprAST;
-        struct binaryExprAST;
-        struct monoExprAST;
-
-        using exprType = std::variant<
-            std::shared_ptr<identifierAST>,
-            std::shared_ptr<numberAST>,
-            std::shared_ptr<binaryExprAST>,
-            std::shared_ptr<monoExprAST>
-                >;
         struct binaryExprAST : public baseAST{
             std::string Op;
-            exprType Lhs;
-            exprType Rhs;
+            std::shared_ptr<baseAST> Lhs;
+            std::shared_ptr<baseAST> Rhs;
 
-            binaryExprAST():baseAST(AstID::BinExprID){}
+            binaryExprAST(std::shared_ptr<baseAST>& ast):baseAST(AstID::BinExprID),Lhs(std::move(ast)){}
             static inline bool classof(baseAST const *base){
                 return base->getID() == AstID::BinExprID;
             }
 
-            void addAst(const auto& ast,auto& type){
-                if(type == "lhs"){
-                    this->Lhs = std::move(ast);
-                }else if(type == "rhs"){
+            void addAst(const auto& ast){
                     this->Rhs = std::move(ast);
-                }
             }
+
             template<typename T>
             void setLhs(const T& ast){
                 this->Lhs = std::move(ast);
@@ -125,7 +111,7 @@ namespace otter{
 
         struct monoExprAST : public baseAST{
             std::string Op;
-            exprType Lhs;
+            std::shared_ptr<baseAST> Lhs;
 
             monoExprAST():baseAST(AstID::MonoExprID){}
             static inline bool classof(baseAST const *base){
@@ -142,11 +128,10 @@ namespace otter{
             }
         };
 
-        using variableType = std::variant<std::shared_ptr<stringAST>, exprType>;
         struct variableAST : public baseAST {
             std::string Name;
             TypeID Type;
-            variableType Val;
+            std::shared_ptr<baseAST> Val;
 
             variableAST(std::string name):baseAST(AstID::BindID),Name(name){};
             static inline bool classof(baseAST const *base){
@@ -170,7 +155,7 @@ namespace otter{
                 return this->Type;
             }
 
-            auto getVal() -> variableType& {
+            auto getVal() -> std::shared_ptr<baseAST>& {
                 return this->Val;
             }
 

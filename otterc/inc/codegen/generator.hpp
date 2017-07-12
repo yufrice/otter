@@ -21,6 +21,7 @@ namespace otter {
                 static llvm::LLVMContext TheContext;
                 llvm::IRBuilder<>* Builder;
                 llvm::Module* Module;
+                llvm::GlobalVariable* generateGlovalVariable(std::shared_ptr<variableAST> varAst);
 
         };
     } // namespace codegen

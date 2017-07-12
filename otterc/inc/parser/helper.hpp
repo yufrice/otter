@@ -15,7 +15,7 @@ namespace otter{
             }
 
             inline auto assign(auto&& arg){
-                return [&arg](auto& ctx){
+                return [=](auto& ctx){
                         x3::_val(ctx) = arg;
                     };
             }

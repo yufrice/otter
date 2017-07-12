@@ -20,11 +20,11 @@ int main(int argc, char** argv) {
         if (argc == 1) {
             throw std::string("No input files");
         }
-        fs::path p = argv[1];
-        if (!fs::exists(p)) {
-            throw(p.string() + ": No such file");
+        fs::path srcPath = argv[1];
+        if (!fs::exists(srcPath)) {
+            throw(srcPath.string() + ": No such file");
         }
-        std::ifstream ifs(p);
+        std::ifstream ifs(srcPath);
         if (ifs.fail()) {
             throw std::string("Failed to open");
         }
@@ -45,23 +45,14 @@ int main(int argc, char** argv) {
         if (succces && first == src.end()) {
             std::cout << "ok" << std::endl;
 
-            std::cout << "Vars" << std::endl;
-            for (auto v : result->Vars) {
-                std::cout << v->Name << "\t";
-                if (auto a =
-                        std::get_if<std::shared_ptr<ast::stringAST>>(&v->Val)) {
-                    std::cout >> a.use_count() >> std::endl;
-                }
-            }
-            // std::error_code err;
-            // std::string out = std::string(argv[1]) + ".out";
-            // llvm::raw_fd_ostream raw_stream(out, err,
-            //                                 llvm::sys::fs::OpenFlags::F_RW);
-            // codegen::Generator gen;
-            // llvm::WriteBitcodeToFile(gen.generatorModule(std::move(result)),
-            //                          raw_stream);
-            // raw_stream.close();
-
+            std::error_code err;
+            std::string out = std::string(argv[1]) + ".out";
+            llvm::raw_fd_ostream raw_stream(out, err,
+                                            llvm::sys::fs::OpenFlags::F_RW);
+            codegen::Generator gen;
+            llvm::WriteBitcodeToFile(gen.generatorModule(std::move(result)),
+                                     raw_stream);
+            raw_stream.close();
         } else {
             /* ToDo
              *  error handring
