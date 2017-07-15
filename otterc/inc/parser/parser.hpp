@@ -17,6 +17,9 @@ namespace otter {
         x3::rule<class variable, std::shared_ptr<variableAST>> const variable("variable");
         x3::rule<class statement, std::shared_ptr<statementsAST>> const statement("statement");
 
+        x3::rule<class funcCall, std::shared_ptr<funcCallAST>> const funcCall("funcCall");
+        x3::rule<class lambda, std::shared_ptr<functionAST>> const lambda("lambda");
+
         x3::rule<class expr, std::shared_ptr<baseAST>> const expr("expr");
         x3::rule<class notExpr, std::shared_ptr<baseAST>> const notExpr("notExpr");
         x3::rule<class boolExpr, std::shared_ptr<baseAST>> const boolExpr("boolExpr");
@@ -59,6 +62,7 @@ namespace otter {
                 );
 
 
+        auto const function_def = x3::lit('(') >> *id[detail::sharedAdd()] >> x3::lit(')') >> *number[detail::addAST()] >> (x3::lit(";") | x3::lit(";;"));
         auto const string_def = x3::lit('"') >> +((x3::char_)- x3::lit('"')) >> x3::lit('"');
         auto const value_def = string[detail::sharedAssign<stringAST>()];
         // auto const value_def = string[detail::sharedAssign<stringAST>()] | number[detail::sharedAssign<numberAST>()]
@@ -68,15 +72,15 @@ namespace otter {
                 | x3::lit("double")[detail::assign(TypeID::Double)]
                 | x3::lit("string")[detail::assign(TypeID::String)]);
         auto const variable_def = x3::lit("let") >> id[detail::sharedAssign<variableAST>()] >> type[detail:: sharedAdd()] >> "=" >>
-            (value[detail::addAST()] | addExpr[detail::addAST()]);
+            (value[detail::addAST()] | addExpr[detail::addAST()] | function[detail::addAST()]);
 
-        auto const statement_def = id[detail::sharedAssign<statementsAST>()] >> (id[detail::sharedAdd()] | string[detail::sharedAdd()]);
-        auto const function_def = "let" >> id[detail::sharedAssign<functionAST>()] >> "=" >> *statement[detail::addAST()] >> ";";
+        auto const statement_def = id[detail::sharedAssign<statementsAST>()] >> (id[detail::sharedAdd()]);
+        auto const funcCall_def = id[detail::sharedAssign<funcCallAST>()] >> x3::lit('(') >> *(id[detail::addAST()]) >> x3::lit(')');
 
-        auto const module_def = *variable[detail::addAST(typeid(variableAST))] >> *function[detail::addAST()];
+        auto const module_def = *variable[detail::addAST(typeid(variableAST))] >> *funcCall[detail::addAST()];
 
         BOOST_SPIRIT_DEFINE(
-                value, string, type,
+                value, string, type,funcCall,
                 expr, notExpr, boolExpr, addExpr, mulExpr, number,
                 statement, variable, function, module, id);
 

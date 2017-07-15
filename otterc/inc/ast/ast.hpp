@@ -11,6 +11,7 @@ namespace otter{
         enum struct AstID{
             BaseID,
             FunctionID,
+            FuncCallID,
             TypeID,
             ModuleID,
             NumberID,
@@ -176,12 +177,17 @@ namespace otter{
         };
 
         struct functionAST : public baseAST{
-            std::string Name;
-            std::vector<std::shared_ptr<statementsAST>> Statements;
+            std::vector<std::string> Args;
+            std::vector<std::shared_ptr<baseAST>> Statements;
 
-            functionAST(std::string name):baseAST(AstID::FunctionID),Name(name){};
+            functionAST():baseAST(AstID::FunctionID){};
             static inline bool classof(baseAST const *base) {
                 return base->getID() == AstID::FunctionID;
+            }
+
+
+            void setVal(const std::string& ast){
+                Args.emplace_back(std::move(ast));
             }
 
             void addAst(const auto& ast){
@@ -189,14 +195,28 @@ namespace otter{
             }
 
 
-            auto getStatements() -> std::vector<std::shared_ptr<statementsAST>>& {
+            auto getStatements() -> std::vector<std::shared_ptr<baseAST>>& {
                 return this->Statements;
+            }
+        };
+
+        struct funcCallAST : public baseAST{
+            std::string Name;
+            std::vector<variableAST> Args;
+
+            funcCallAST(std::string name):baseAST(AstID::FuncCallID),Name(name){};
+            static inline bool classof(baseAST const *base) {
+                return base->getID() == AstID::FuncCallID;
+            }
+
+            void addAst(const auto& ast){
+                    Args.emplace_back(std::move(ast));
             }
         };
 
         struct moduleAST : public baseAST{
             std::vector<std::shared_ptr<variableAST>> Vars;
-            std::vector<std::shared_ptr<functionAST>> Funcs;
+            std::vector<std::shared_ptr<funcCallAST>> Funcs;
 
             moduleAST():baseAST(AstID::ModuleID){};
             static inline bool classof(baseAST const *base) {
@@ -210,11 +230,11 @@ namespace otter{
             }
 
             void addAst(const auto& ast){
-                if(std::is_convertible<decltype(ast), std::shared_ptr<functionAST>>::value == true){
+                if(std::is_convertible<decltype(ast), std::shared_ptr<funcCallAST>>::value == true){
                     Funcs.push_back(std::move(ast));
                 }
             }
-            auto getFuncs() -> std::vector<std::shared_ptr<functionAST>>& {
+            auto getFuncs() -> std::vector<std::shared_ptr<funcCallAST>>& {
                 return this-> Funcs;
             }
 

@@ -6,6 +6,7 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/GlobalVariable.h>
 #include "../ast/ast.hpp"
+#include "helper.hpp"
 
 namespace otter {
     namespace codegen {
@@ -21,7 +22,8 @@ namespace otter {
                 static llvm::LLVMContext TheContext;
                 llvm::IRBuilder<>* Builder;
                 llvm::Module* Module;
-                llvm::GlobalVariable* generateGlovalVariable(std::shared_ptr<variableAST> varAst);
+                llvm::GlobalVariable* generateGlovalVariable(std::shared_ptr<variableAST> var);
+                llvm::GlobalVariable* GeneratorGlobalString(std::shared_ptr<variableAST> var);
 
         };
     } // namespace codegen
