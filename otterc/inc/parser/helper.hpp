@@ -28,11 +28,11 @@ namespace otter{
             }
 
             template<typename T>
-            decltype(auto) sharedAssign(auto&& arg){
-                return [&arg](auto& ctx){
-                    x3::_val(ctx) = std::move(std::make_shared<T>(arg));
-                };
-            }
+                decltype(auto) sharedAssign(auto&& arg){
+                    return [&arg](auto& ctx){
+                        x3::_val(ctx) = std::move(std::make_shared<T>(arg));
+                    };
+                }
 
 
             decltype(auto) sharedAdd(){

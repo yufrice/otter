@@ -54,6 +54,7 @@ int main(int argc, char** argv) {
                                      raw_stream);
             raw_stream.close();
         } else {
+            std::cout << *first << std::endl;
             /* ToDo
              *  error handring
              *  */

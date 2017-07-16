@@ -180,7 +180,7 @@ namespace otter{
             std::vector<std::string> Args;
             std::vector<std::shared_ptr<baseAST>> Statements;
 
-            functionAST():baseAST(AstID::FunctionID){};
+            functionAST(decltype(nullptr) nl):baseAST(AstID::FunctionID){};
             static inline bool classof(baseAST const *base) {
                 return base->getID() == AstID::FunctionID;
             }

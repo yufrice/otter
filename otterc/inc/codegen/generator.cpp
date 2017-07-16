@@ -30,8 +30,14 @@ Module* Generator::generatorModule(std::shared_ptr<moduleAST> mod) {
 
 GlobalVariable* Generator::generateGlovalVariable(
     std::shared_ptr<variableAST> var) {
-    if (TypeID::String == var->Type) {
-        return GeneratorGlobalString(var);
+    if (detail::sharedIsa<functionAST>(var->Val)) {
+        std::cout << "func" << std::endl;
+    } else if (detail::sharedIsa<stringAST>(var->Val)) {
+        if (TypeID::String == var->Type) {
+            return GeneratorGlobalString(var);
+        }
+    } else {
+        std::cout << "value" << std::endl;
     }
 }
 

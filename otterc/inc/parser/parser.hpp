@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <boost/spirit/home/x3.hpp>
+#include "on_error.hpp"
 #include "helper.hpp"
 
 namespace otter {
@@ -12,8 +13,8 @@ namespace otter {
         using namespace otter::ast;
 
         x3::rule<class id, std::string> const id("id");
-        x3::rule<class modules, std::shared_ptr<moduleAST>> const module("module");
-        x3::rule<class function, std::shared_ptr<functionAST>> const function("function");
+        x3::rule<moduleClass, std::shared_ptr<moduleAST>> const module("module");
+        x3::rule<funcClass, std::shared_ptr<functionAST>> const function("function");
         x3::rule<class variable, std::shared_ptr<variableAST>> const variable("variable");
         x3::rule<class statement, std::shared_ptr<statementsAST>> const statement("statement");
 
@@ -36,7 +37,7 @@ namespace otter {
             ((x3::alpha | '_') >> *(x3::alnum | '_'))
             ];
 
-        auto const number_def = x3::double_[detail::sharedAssign<numberAST>()] |
+        auto const number_def = x3::int_[detail::sharedAssign<numberAST>()] | x3::double_[detail::sharedAssign<numberAST>()] |
             id[detail::sharedAssign<identifierAST>()] |
             '(' >> addExpr[detail::assign()] >> ')';
         auto const mulExpr_def = number[detail::sharedAssign<binaryExprAST>()] >> *(
@@ -62,7 +63,7 @@ namespace otter {
                 );
 
 
-        auto const function_def = x3::lit('(') >> *id[detail::sharedAdd()] >> x3::lit(')') >> *number[detail::addAST()] >> (x3::lit(";") | x3::lit(";;"));
+        auto const function_def = x3::lit("[](")[detail::sharedAssign<functionAST>(nullptr)] >> *id[detail::sharedAdd()] >> x3::lit(')') >> +number[detail::addAST()] >> (x3::lit(";;") | x3::lit(";"));
         auto const string_def = x3::lit('"') >> +((x3::char_)- x3::lit('"')) >> x3::lit('"');
         auto const value_def = string[detail::sharedAssign<stringAST>()];
         // auto const value_def = string[detail::sharedAssign<stringAST>()] | number[detail::sharedAssign<numberAST>()]
@@ -77,7 +78,7 @@ namespace otter {
         auto const statement_def = id[detail::sharedAssign<statementsAST>()] >> (id[detail::sharedAdd()]);
         auto const funcCall_def = id[detail::sharedAssign<funcCallAST>()] >> x3::lit('(') >> *(id[detail::addAST()]) >> x3::lit(')');
 
-        auto const module_def = *variable[detail::addAST(typeid(variableAST))] >> *funcCall[detail::addAST()];
+        auto const module_def = *(variable[detail::addAST(typeid(variableAST))] | funcCall[detail::addAST()] | ("/*" >> *(x3::char_ - "*/") >> "*/"));
 
         BOOST_SPIRIT_DEFINE(
                 value, string, type,funcCall,
