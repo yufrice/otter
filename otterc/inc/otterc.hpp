@@ -4,7 +4,7 @@
 #include "ast/ast.hpp"
 #include "ast/adapt.hpp"
 #include "parser/parser.hpp"
+#include "semantics/preCheck.hpp"
 #include "codegen/generator.hpp"
 
 #endif
-

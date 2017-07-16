@@ -36,6 +36,8 @@ GlobalVariable* Generator::generateGlovalVariable(
         if (TypeID::String == var->Type) {
             return GeneratorGlobalString(var);
         }
+    } else if (detail::sharedIsa<identifierAST>(var->Val)) {
+        std::cout << "id" << std::endl;
     } else {
         std::cout << "value" << std::endl;
     }

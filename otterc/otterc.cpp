@@ -43,7 +43,8 @@ int main(int argc, char** argv) {
         auto succces = x3::phrase_parse(first, src.end(), parser::module,
                                         x3::standard_wide::space, result);
         if (succces && first == src.end()) {
-            std::cout << "ok" << std::endl;
+            // pre check
+            semantics::preCheck pck(result);
 
             std::error_code err;
             std::string out = std::string(argv[1]) + ".out";
