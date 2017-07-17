@@ -45,6 +45,7 @@ int main(int argc, char** argv) {
         if (succces && first == src.end()) {
             // pre check
             semantics::preCheck pck(result);
+            pck.check();
 
             std::error_code err;
             std::string out = std::string(argv[1]) + ".out";

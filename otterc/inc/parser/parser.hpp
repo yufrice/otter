@@ -45,7 +45,7 @@ namespace otter {
         auto const id_def =
             x3::lexeme[((x3::alpha | '_') >> *(x3::alnum | '_'))];
 
-        auto const number_def = x3::int_[detail::sharedAssign<numberAST>()] |
+        auto const number_def = x3::double_[detail::sharedAssign<numberAST>()] |
                                 x3::double_[detail::sharedAssign<numberAST>()] |
                                 id[detail::sharedAssign<identifierAST>()] |
                                 '(' >> addExpr[detail::assign()] >> ')';
@@ -90,7 +90,8 @@ namespace otter {
         auto const variable_def = x3::lit("let") >>
                                   id[detail::sharedAssign<variableAST>()] >>
                                   type[detail::sharedAdd()] >> "=" >>
-                                  (value[detail::addAST()] |
+                                  (number[detail::addAST()] |
+                                   value[detail::addAST()] |
                                    addExpr[detail::addAST()] |
                                    function[detail::addAST()]);
 
