@@ -23,9 +23,11 @@ namespace otter {
             llvm::IRBuilder<>* Builder;
             llvm::Module* Module;
             llvm::GlobalVariable* generateGlovalVariable(
-                std::shared_ptr<variableAST> var);
+                std::shared_ptr<variableAST>);
             llvm::GlobalVariable* GeneratorGlobalString(
-                std::shared_ptr<variableAST> var);
+                std::shared_ptr<variableAST>);
+            llvm::Function* GeneratorFunction(std::shared_ptr<baseAST>);
+            llvm::Value* GeneratorValue(std::shared_ptr<baseAST>, llvm::Type*);
         };
     }  // namespace codegen
 }  // namespace otter

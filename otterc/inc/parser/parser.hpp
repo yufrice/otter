@@ -45,9 +45,9 @@ namespace otter {
         auto const id_def =
             x3::lexeme[((x3::alpha | '_') >> *(x3::alnum | '_'))];
 
-        auto const number_def = x3::double_[detail::sharedAssign<numberAST>()] |
+        auto const number_def = id[detail::sharedAssign<identifierAST>()] |
                                 x3::double_[detail::sharedAssign<numberAST>()] |
-                                id[detail::sharedAssign<identifierAST>()] |
+                                x3::double_[detail::sharedAssign<numberAST>()] |
                                 '(' >> addExpr[detail::assign()] >> ')';
         auto const mulExpr_def =
             number[detail::sharedAssign<binaryExprAST>()] >>
@@ -80,18 +80,17 @@ namespace otter {
             +number[detail::addAST()] >> (x3::lit(";;") | x3::lit(";"));
         auto const string_def = x3::lit('"') >>
                                 +((x3::char_)-x3::lit('"')) >> x3::lit('"');
-        auto const value_def = id[detail::sharedAssign<identifierAST>()] |
-                               string[detail::sharedAssign<stringAST>()];
+        auto const value_def = string[detail::sharedAssign<stringAST>()];
 
         auto const type_def =
             ":" >> (x3::lit("int")[detail::assign(TypeID::Int)] |
                     x3::lit("double")[detail::assign(TypeID::Double)] |
-                    x3::lit("string")[detail::assign(TypeID::String)]);
+                    x3::lit("string")[detail::assign(TypeID::String)] |
+                    x3::lit("unit")[detail::assign(TypeID::Unit)]);
         auto const variable_def = x3::lit("let") >>
                                   id[detail::sharedAssign<variableAST>()] >>
                                   type[detail::sharedAdd()] >> "=" >>
-                                  (number[detail::addAST()] |
-                                   value[detail::addAST()] |
+                                  (value[detail::addAST()] |
                                    addExpr[detail::addAST()] |
                                    function[detail::addAST()]);
 

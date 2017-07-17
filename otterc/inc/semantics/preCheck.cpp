@@ -8,10 +8,8 @@ namespace otter {
         }
         void preCheck::checkOverLap() {
             for (auto var : this->Module->Vars) {
+                this->checkIdAssign(var->Val);
                 auto ptr = var->Val.get();
-                if (auto rawPtr = dynamic_cast<ast::identifierAST*>(ptr)) {
-                    this->checkIdAssign(rawPtr);
-                }
                 if (nameQueue.end() !=
                     std::find(nameQueue.begin(), nameQueue.end(), var->Name)) {
                     throw std::string("redeclaration of " + var->Name);
@@ -51,10 +49,21 @@ namespace otter {
             }
         }
 
-        void preCheck::checkIdAssign(auto& rawPtr) {
-            if (nameQueue.end() ==
-                std::find(nameQueue.begin(), nameQueue.end(), rawPtr->Ident)) {
-                throw std::string(rawPtr->Ident + " was not declar");
+        void preCheck::checkIdAssign(auto& val) {
+            auto ptr = val.get();
+            if (auto rawPtr = dynamic_cast<ast::identifierAST*>(ptr)) {
+                if (nameQueue.end() == std::find(nameQueue.begin(),
+                                                 nameQueue.end(),
+                                                 rawPtr->Ident)) {
+                    throw std::string(rawPtr->Ident + " was not declar");
+                }
+            } else if (auto rawPtr = dynamic_cast<ast::binaryExprAST*>(ptr)) {
+                if (rawPtr->Rhs) {
+                    checkIdAssign(rawPtr->Rhs);
+                    checkIdAssign(rawPtr->Lhs);
+                } else {
+                    checkIdAssign(rawPtr->Lhs);
+                }
             }
         }
 

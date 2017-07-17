@@ -27,7 +27,7 @@ namespace otter {
             WhileStatementID,
         };
 
-        enum struct TypeID { Func, Int, Double, String, Nil };
+        enum struct TypeID { Unit, Int, Double, String, Nil };
 
         struct baseAST {
            private:
