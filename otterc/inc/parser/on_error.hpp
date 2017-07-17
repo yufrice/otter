@@ -4,31 +4,33 @@
 #include <boost/spirit/home/x3.hpp>
 
 namespace otter {
-namespace parser {
+    namespace parser {
 
-struct moduleClass {
-    template <typename Iterator, typename Exception, typename Context>
-    boost::spirit::x3::error_handler_result on_error(Iterator&,
-                                                     Iterator const& last,
-                                                     Exception const& x,
-                                                     Context const& context) {
-        std::cout << "error" << std::endl;
-        return boost::spirit::x3::error_handler_result::fail;
-    }
-};
+        struct moduleClass {
+            template <typename Iterator, typename Exception, typename Context>
+            boost::spirit::x3::error_handler_result on_error(
+                Iterator&,
+                Iterator const& last,
+                Exception const& x,
+                Context const& context) {
+                std::cout << "error" << std::endl;
+                return boost::spirit::x3::error_handler_result::fail;
+            }
+        };
 
-struct funcClass {
-    template <typename Iterator, typename Exception, typename Context>
-    boost::spirit::x3::error_handler_result on_error(Iterator&,
-                                                     Iterator const& last,
-                                                     Exception const& x,
-                                                     Context const& context) {
-        std::cout << "error" << std::endl;
-        return boost::spirit::x3::error_handler_result::fail;
-    }
-};
+        struct funcClass {
+            template <typename Iterator, typename Exception, typename Context>
+            boost::spirit::x3::error_handler_result on_error(
+                Iterator&,
+                Iterator const& last,
+                Exception const& x,
+                Context const& context) {
+                std::cout << "error" << std::endl;
+                return boost::spirit::x3::error_handler_result::fail;
+            }
+        };
 
-}  // namespace parser
+    }  // namespace parser
 }  // namespace otter
 
 #endif
