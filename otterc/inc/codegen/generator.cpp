@@ -25,6 +25,7 @@ namespace otter {
             }
 
             std::cout << "\n######################" << std::endl;
+
             Module->dump();
             return this->Module;
         }
@@ -78,7 +79,15 @@ namespace otter {
             }
         }
 
-        Function* Generator::GeneratorFunction(std::shared_ptr<baseAST> var) {}
+        Function* Generator::GeneratorFunction(std::shared_ptr<baseAST> var,
+                                               TypeID funcType) {
+            llvm::FunctionType* func_type;
+            if (funcType == TypeID::Int) {
+                llvm::FunctionType::get(
+                    llvm::Type::getInt32Ty(llvm::getGlobalContext()), int_types,
+                    false);
+            }
+        }
 
         Value* Generator::GeneratorValue(std::shared_ptr<baseAST> var,
                                          Type* valueType) {
@@ -92,7 +101,19 @@ namespace otter {
                     if (rawVal->Op == "+") {
                         return this->Builder->CreateAdd(
                             GeneratorValue(rawVal->Lhs, valueType),
-                            GeneratorValue(rawVal->Rhs, valueType), "add");
+                            GeneratorValue(rawVal->Rhs, valueType));
+                    } else if (rawVal->Op == "-") {
+                        return this->Builder->CreateSub(
+                            GeneratorValue(rawVal->Lhs, valueType),
+                            GeneratorValue(rawVal->Rhs, valueType));
+                    } else if (rawVal->Op == "*") {
+                        return this->Builder->CreateMul(
+                            GeneratorValue(rawVal->Lhs, valueType),
+                            GeneratorValue(rawVal->Rhs, valueType));
+                    } else if (rawVal->Op == "/") {
+                        return this->Builder->CreateSDiv(
+                            GeneratorValue(rawVal->Lhs, valueType),
+                            GeneratorValue(rawVal->Rhs, valueType));
                     }
                 } else if (rawVal->Lhs) {
                     return GeneratorValue(rawVal->Lhs, valueType);
