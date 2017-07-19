@@ -7,7 +7,7 @@ build:
     - script:
       name: package install
       code: |
-        sudo pacman --noconfirm -Syu llvm clang boost cmake
+        sudo pacman --noconfirm -Syu llvm clang boost make cmake
 
     - script:
       name: build
