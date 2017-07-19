@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <type_traits>
 #include <memory>
 #include <iostream>
 
@@ -154,6 +155,7 @@ namespace otter {
 
         struct functionAST : public baseAST {
             std::vector<std::string> Args;
+            std::vector<TypeID> Types;
             std::vector<std::shared_ptr<baseAST>> Statements;
 
             functionAST(decltype(nullptr) nl) : baseAST(AstID::FunctionID){};
@@ -161,8 +163,16 @@ namespace otter {
                 return base->getID() == AstID::FunctionID;
             }
 
-            void setVal(const std::string& ast) {
-                Args.emplace_back(std::move(ast));
+            template <typename T>
+            auto setVal(T Arg) ->
+                typename std::enable_if<!std::is_enum<T>::value>::type {
+                Args.emplace_back(Arg);
+            }
+
+            template <typename T>
+            auto setVal(T Type) ->
+                typename std::enable_if<std::is_enum<T>::value>::type {
+                Types.emplace_back(Type);
             }
 
             void addAst(const auto& ast) {

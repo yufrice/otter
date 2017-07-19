@@ -30,13 +30,17 @@ namespace otter {
             return this->Module;
         }
 
-        GlobalVariable* Generator::generateGlovalVariable(
+        bool Generator::generateGlovalVariable(
             std::shared_ptr<variableAST> var) {
             if (detail::sharedIsa<functionAST>(var->Val)) {
-                std::cout << "func" << std::endl;
+                if (this->GeneratorFunction(var, var->Type)) {
+                    return true;
+                }
             } else if (detail::sharedIsa<stringAST>(var->Val)) {
                 if (TypeID::String == var->Type) {
-                    return this->GeneratorGlobalString(var);
+                    if (this->GeneratorGlobalString(var)) {
+                        return true;
+                    }
                 }
             } else if (detail::sharedIsa<identifierAST>(var->Val)) {
                 std::cout << "id" << std::endl;
@@ -54,9 +58,11 @@ namespace otter {
                         GlobalVariable::LinkageTypes::CommonLinkage, nullptr,
                         var->Name);
                     this->Builder->CreateStore(gvar, value);
-                    return gvar;
+                    if (gvar) {
+                        return true;
+                    }
                 } else {
-                    return nullptr;
+                    return false;
                 }
             }
         }
@@ -79,14 +85,34 @@ namespace otter {
             }
         }
 
-        Function* Generator::GeneratorFunction(std::shared_ptr<baseAST> var,
+        Function* Generator::GeneratorFunction(std::shared_ptr<variableAST> var,
                                                TypeID funcType) {
-            llvm::FunctionType* func_type;
-            if (funcType == TypeID::Int) {
-                llvm::FunctionType::get(
-                    llvm::Type::getInt32Ty(llvm::getGlobalContext()), int_types,
-                    false);
+            FunctionType* Type;
+            std::vector<llvm::Type*> putsArgs;
+            if (auto rawVal = detail::sharedCast<functionAST>(var->Val)) {
+                for (auto argType : rawVal->Types) {
+                    if (argType == TypeID::Int) {
+                        putsArgs.emplace_back(
+                            Type::getInt32Ty(this->TheContext));
+                    } else if (argType == TypeID::Double) {
+                        putsArgs.emplace_back(
+                            Type::getDoubleTy(this->TheContext));
+                    } else if (argType == TypeID::String) {
+                        putsArgs.emplace_back(
+                            Type::getInt32Ty(this->TheContext));
+                    }
+                }
             }
+            ArrayRef<llvm::Type*> argsRef(putsArgs);
+            if (funcType == TypeID::Int) {
+                Type = FunctionType::get(
+                    llvm::Type::getInt32Ty(this->TheContext), argsRef, false);
+            } else if (funcType == TypeID::Double) {
+                Type = FunctionType::get(
+                    llvm::Type::getDoubleTy(this->TheContext), argsRef, false);
+            }
+            Function::Create(Type, llvm::Function::ExternalLinkage, var->Name,
+                             this->Module);
         }
 
         Value* Generator::GeneratorValue(std::shared_ptr<baseAST> var,

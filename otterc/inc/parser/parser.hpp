@@ -76,8 +76,8 @@ namespace otter {
 
         auto const function_def =
             x3::lit("[](")[detail::sharedAssign<functionAST>(nullptr)] >>
-            *id[detail::sharedAdd()] >> x3::lit(')') >>
-            +number[detail::addAST()] >> (x3::lit(";;") | x3::lit(";"));
+            *(id[detail::sharedAdd()] >> type[detail::sharedAdd()]) >>
+            x3::lit(')') >> +number[detail::addAST()] >> x3::lit(";");
         auto const string_def = x3::lit('"') >>
                                 +((x3::char_)-x3::lit('"')) >> x3::lit('"');
         auto const value_def = string[detail::sharedAssign<stringAST>()];
@@ -87,6 +87,7 @@ namespace otter {
                     x3::lit("double")[detail::assign(TypeID::Double)] |
                     x3::lit("string")[detail::assign(TypeID::String)] |
                     x3::lit("unit")[detail::assign(TypeID::Unit)]);
+
         auto const variable_def = x3::lit("let") >>
                                   id[detail::sharedAssign<variableAST>()] >>
                                   type[detail::sharedAdd()] >> "=" >>
