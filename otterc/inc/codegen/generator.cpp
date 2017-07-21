@@ -18,14 +18,22 @@ namespace otter {
         }
 
         Module* Generator::generatorModule(std::shared_ptr<moduleAST> mod) {
+            FunctionType* funcType = FunctionType::get(
+                llvm::Type::getInt32Ty(this->TheContext), false);
+            Function* mainFunc = Function::Create(
+                funcType, Function::ExternalLinkage, "main", this->Module);
+
+            BasicBlock* entry =
+                BasicBlock::Create(this->TheContext, "entrypoint", mainFunc);
+            Builder->SetInsertPoint(entry);
+
             for (auto var : mod->Vars) {
                 if (!generateGlovalVariable(var)) {
                     // throw std::string("type error");
                 }
             }
 
-            std::cout << "\n######################" << std::endl;
-
+            Builder->CreateRetVoid();
             Module->dump();
             return this->Module;
         }
@@ -57,6 +65,7 @@ namespace otter {
                         *this->Module, valueType, false,
                         GlobalVariable::LinkageTypes::CommonLinkage, nullptr,
                         var->Name);
+                    // gvar->setInitializer(value);
                     this->Builder->CreateStore(gvar, value);
                     if (gvar) {
                         return true;
@@ -72,7 +81,7 @@ namespace otter {
             if (auto rawStr = detail::sharedCast<stringAST>(var->Val)) {
                 ArrayType* Type =
                     ArrayType::get(IntegerType::get(this->TheContext, 8),
-                                   (rawStr->Str).length());
+                                   (rawStr->Str).length() + 2);
                 auto Name = var->Name;
                 GlobalVariable* gvar =
                     new GlobalVariable(*this->Module, Type, true,
@@ -80,6 +89,8 @@ namespace otter {
 
                 Constant* strCons =
                     ConstantDataArray::getString(this->TheContext, rawStr->Str);
+                // llvm::Value* helloWorld =
+
                 gvar->setInitializer(strCons);
                 return gvar;
             }
@@ -88,29 +99,36 @@ namespace otter {
         Function* Generator::GeneratorFunction(std::shared_ptr<variableAST> var,
                                                TypeID funcType) {
             FunctionType* Type;
-            std::vector<llvm::Type*> putsArgs;
+            std::vector<llvm::Type*> typeArgs;
             if (auto rawVal = detail::sharedCast<functionAST>(var->Val)) {
                 for (auto argType : rawVal->Types) {
                     if (argType == TypeID::Int) {
-                        putsArgs.emplace_back(
+                        typeArgs.emplace_back(
                             Type::getInt32Ty(this->TheContext));
                     } else if (argType == TypeID::Double) {
-                        putsArgs.emplace_back(
+                        typeArgs.emplace_back(
                             Type::getDoubleTy(this->TheContext));
                     } else if (argType == TypeID::String) {
-                        putsArgs.emplace_back(
+                        typeArgs.emplace_back(
                             Type::getInt32Ty(this->TheContext));
                     }
                 }
             }
-            ArrayRef<llvm::Type*> argsRef(putsArgs);
+            ArrayRef<llvm::Type*> argsRef(typeArgs);
             if (funcType == TypeID::Int) {
                 Type = FunctionType::get(
                     llvm::Type::getInt32Ty(this->TheContext), argsRef, false);
             } else if (funcType == TypeID::Double) {
                 Type = FunctionType::get(
                     llvm::Type::getDoubleTy(this->TheContext), argsRef, false);
+            } else if (funcType == TypeID::String) {
+                Type = FunctionType::get(
+                    llvm::Type::getInt32Ty(this->TheContext), argsRef, false);
+            } else if (funcType == TypeID::Unit) {
+                Type = FunctionType::get(
+                    llvm::Type::getVoidTy(this->TheContext), argsRef, false);
             }
+
             Function::Create(Type, llvm::Function::ExternalLinkage, var->Name,
                              this->Module);
         }

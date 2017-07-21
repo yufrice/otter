@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
         auto result  = std::make_shared<ast::moduleAST>();
         auto first   = src.begin();
         auto succces = x3::phrase_parse(first, src.end(), parser::module,
-                                        x3::standard_wide::space, result);
+                                        parser::skkiper, result);
         if (succces && first == src.end()) {
             // pre check
             semantics::preCheck pck(result);

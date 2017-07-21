@@ -47,7 +47,7 @@ namespace otter {
 
         auto const number_def = id[detail::sharedAssign<identifierAST>()] |
                                 x3::double_[detail::sharedAssign<numberAST>()] |
-                                x3::double_[detail::sharedAssign<numberAST>()] |
+                                x3::int_[detail::sharedAssign<numberAST>()] |
                                 '(' >> addExpr[detail::assign()] >> ')';
         auto const mulExpr_def =
             number[detail::sharedAssign<binaryExprAST>()] >>
@@ -103,8 +103,11 @@ namespace otter {
 
         auto const module_def =
             *(variable[detail::addAST(typeid(variableAST))] |
-              funcCall[detail::addAST()] |
-              ("/*" >> *(x3::char_ - "*/") >> "*/"));
+              funcCall[detail::addAST()]);
+
+        auto const skkiper =
+            x3::space | x3::standard_wide::space |
+            x3::lexeme[';' >> *(x3::char_ - x3::eol) >> x3::eol];
 
         BOOST_SPIRIT_DEFINE(value,
                             string,
