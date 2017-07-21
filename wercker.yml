@@ -7,8 +7,7 @@ build:
     - script:
       name: package install
       code: |
-        sudo pacman --noconfirm -Sy archlinux-keyring
-        sudo pacman --noconfirm -Syu llvm clang boost gcc make cmake
+        sudo pacman --noconfirm -Syu llvm clang boost make cmake
 
     - script:
       name: build

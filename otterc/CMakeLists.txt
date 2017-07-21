@@ -13,7 +13,8 @@ find_package(Boost 1.6 COMPONENTS program_options REQUIRED)
 INCLUDE_DIRECTORIES(./inc)
 add_executable(otterc
 	otterc.cpp
-	./inc/codegen/generator.cpp)
+	./inc/codegen/generator.cpp
+	./inc/semantics/preCheck.cpp)
 llvm_map_components_to_libnames(llvm_libs support core bitwriter)
 target_link_libraries(otterc stdc++fs ${llvm_libs})
 

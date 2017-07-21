@@ -20,11 +20,11 @@ int main(int argc, char** argv) {
         if (argc == 1) {
             throw std::string("No input files");
         }
-        fs::path p = argv[1];
-        if (!fs::exists(p)) {
-            throw(p.string() + ": No such file");
+        fs::path srcPath = argv[1];
+        if (!fs::exists(srcPath)) {
+            throw(srcPath.string() + ": No such file");
         }
-        std::ifstream ifs(p);
+        std::ifstream ifs(srcPath);
         if (ifs.fail()) {
             throw std::string("Failed to open");
         }
@@ -38,12 +38,14 @@ int main(int argc, char** argv) {
             }
         }
 
-        auto result = std::make_shared<ast::moduleAST>();
-        auto first = src.begin();
+        auto result  = std::make_shared<ast::moduleAST>();
+        auto first   = src.begin();
         auto succces = x3::phrase_parse(first, src.end(), parser::module,
-                                        x3::standard_wide::space, result);
+                                        parser::skkiper, result);
         if (succces && first == src.end()) {
-            std::cout << "ok" << std::endl;
+            // pre check
+            semantics::preCheck pck(result);
+            pck.check();
 
             std::error_code err;
             std::string out = std::string(argv[1]) + ".out";
@@ -53,8 +55,8 @@ int main(int argc, char** argv) {
             llvm::WriteBitcodeToFile(gen.generatorModule(std::move(result)),
                                      raw_stream);
             raw_stream.close();
-
         } else {
+            std::cout << *first << std::endl;
             /* ToDo
              *  error handring
              *  */

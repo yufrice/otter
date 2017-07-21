@@ -3,14 +3,16 @@
 
 #include <string>
 #include <vector>
-#include <variant>
+#include <type_traits>
 #include <memory>
+#include <iostream>
 
-namespace otter{
-    namespace ast{
-        enum struct AstID{
+namespace otter {
+    namespace ast {
+        enum struct AstID {
             BaseID,
             FunctionID,
+            FuncCallID,
             TypeID,
             ModuleID,
             NumberID,
@@ -26,30 +28,24 @@ namespace otter{
             WhileStatementID,
         };
 
-        enum struct TypeID{
-            Func,
-            Int,
-            Double,
-            String,
-            Nil
-        };
+        enum struct TypeID { Unit, Int, Double, String, Nil };
 
         struct baseAST {
-            private:
-                AstID ID;
-            public:
-                baseAST(AstID id):ID(id){}
-                virtual ~baseAST(){}
-                inline auto getID() const -> AstID {
-                    return this->ID;
-                }
+           private:
+            AstID ID;
+
+           public:
+            baseAST(AstID id) : ID(id) {}
+            virtual ~baseAST() {}
+            inline auto getID() const -> AstID { return this->ID; }
         };
 
         struct identifierAST : public baseAST {
             std::string Ident;
 
-            identifierAST(std::string ident):baseAST(AstID::StringID),Ident(ident){};
-            static inline bool classof(baseAST const *base){
+            identifierAST(std::string ident)
+                : baseAST(AstID::IdentifierID), Ident(ident){};
+            static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::IdentifierID;
             }
         };
@@ -57,175 +53,176 @@ namespace otter{
         struct stringAST : public baseAST {
             std::string Str;
 
-            stringAST(std::string str):baseAST(AstID::StringID),Str(str){};
-            static inline bool classof(baseAST const *base){
+            stringAST(std::string str) : baseAST(AstID::StringID), Str(str){};
+            static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::StringID;
             }
+
+            auto getVal() -> std::string& { return this->Str; }
         };
 
         struct numberAST : public baseAST {
             double Val;
 
-            numberAST(double val):baseAST(AstID::NumberID),Val(val){};
-            static inline bool classof(baseAST const *base){
+            numberAST(double val) : baseAST(AstID::NumberID), Val(val){};
+            static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::NumberID;
             }
 
-            auto getVals() -> double {
-                return this->Val;
-            }
+            auto getVal() -> double { return this->Val; }
         };
 
-        struct binaryExprAST;
-        struct binaryExprAST;
-        struct monoExprAST;
-
-        using exprType = std::variant<
-            std::shared_ptr<identifierAST>,
-            std::shared_ptr<numberAST>,
-            std::shared_ptr<binaryExprAST>,
-            std::shared_ptr<monoExprAST>
-            >;
-        struct binaryExprAST : public baseAST{
+        struct binaryExprAST : public baseAST {
             std::string Op;
-            exprType Lhs;
-            exprType Rhs;
+            std::shared_ptr<baseAST> Lhs;
+            std::shared_ptr<baseAST> Rhs;
 
-            binaryExprAST():baseAST(AstID::BinExprID){}
-            static inline bool classof(baseAST const *base){
+            binaryExprAST(std::shared_ptr<baseAST>& ast)
+                : baseAST(AstID::BinExprID), Lhs(std::move(ast)) {}
+            static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::BinExprID;
             }
 
-            void addAst(const auto& ast,auto& type){
-                if(type == "lhs"){
-                    this->Lhs = std::move(ast);
-                }else if(type == "rhs"){
-                    this->Rhs = std::move(ast);
-                }
-            }
-            template<typename T>
-            void setLhs(const T& ast){
+            void addAst(const auto& ast) { this->Rhs = std::move(ast); }
+
+            template <typename T>
+            void setLhs(const T& ast) {
                 this->Lhs = std::move(ast);
             }
 
-            template<typename T>
-            void setRhs(const T& ast){
+            template <typename T>
+            void setRhs(const T& ast) {
                 this->Rhs = std::move(ast);
             }
 
-            void setVal(const std::string& op){
-                this->Op = op;
-            }
+            void setVal(const std::string& op) { this->Op = op; }
         };
 
-        struct monoExprAST : public baseAST{
+        struct monoExprAST : public baseAST {
             std::string Op;
-            exprType Lhs;
+            std::shared_ptr<baseAST> Lhs;
 
-            monoExprAST():baseAST(AstID::MonoExprID){}
-            static inline bool classof(baseAST const *base){
+            monoExprAST() : baseAST(AstID::MonoExprID) {}
+            static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::MonoExprID;
             }
 
-            template<typename T>
-            void addAst(const T& ast){
+            template <typename T>
+            void addAst(const T& ast) {
                 this->Lhs = std::move(ast);
             }
 
-            void setVal(const std::string& str){
-                this->Op = str;
-            }
+            void setVal(const std::string& str) { this->Op = str; }
         };
 
-        using variableType = std::variant<std::shared_ptr<stringAST>>;
         struct variableAST : public baseAST {
             std::string Name;
-            std::string Type;
-            variableType Val;
+            TypeID Type;
+            std::shared_ptr<baseAST> Val;
 
-            variableAST(std::string name):baseAST(AstID::BindID),Name(name){};
-            static inline bool classof(baseAST const *base){
+            variableAST(std::string name)
+                : baseAST(AstID::BindID), Name(name){};
+            static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::BindID;
             }
 
-            template<typename T>
-            void addAst(const T& ast){
+            template <typename T>
+            void addAst(const T& ast) {
                 this->Val = std::move(ast);
             }
 
-            void setVal(const std::string& str){
-                    this->Type = str;
-            }
+            void setVal(const TypeID& type) { this->Type = type; }
 
-            auto getName() -> std::string& {
-                return this->Name;
-            }
+            auto getName() -> std::string& { return this->Name; }
 
-            auto getType() -> std::string& {
-                return this->Type;
-            }
+            auto getType() -> TypeID& { return this->Type; }
 
-            auto getVal() -> variableType& {
-                return this->Val;
-            }
-
+            auto getVal() -> std::shared_ptr<baseAST>& { return this->Val; }
         };
 
-        struct statementsAST : public baseAST{
+        struct statementsAST : public baseAST {
             std::string Statement;
             std::string Arg;
 
-            statementsAST(std::string stt):baseAST(AstID::StatementsID),Statement(stt){};
-            static inline bool classof(baseAST const *base){
+            statementsAST(std::string stt)
+                : baseAST(AstID::StatementsID), Statement(stt){};
+            static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::StatementsID;
             }
 
-            void setVal(const std::string& arg){
-                this->Arg = arg;
-            }
+            void setVal(const std::string& arg) { this->Arg = arg; }
         };
 
-        struct functionAST : public baseAST{
-            std::string Name;
-            std::vector<std::shared_ptr<statementsAST>> Statements;
+        struct functionAST : public baseAST {
+            std::vector<std::string> Args;
+            std::vector<TypeID> Types;
+            std::vector<std::shared_ptr<baseAST>> Statements;
 
-            functionAST(std::string name):baseAST(AstID::FunctionID),Name(name){};
-            static inline bool classof(baseAST const *base) {
+            functionAST(decltype(nullptr) nl) : baseAST(AstID::FunctionID){};
+            static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::FunctionID;
             }
 
-            void addAst(const auto& ast){
-                    Statements.emplace_back(std::move(ast));
+            template <typename T>
+            auto setVal(T Arg) ->
+                typename std::enable_if<!std::is_enum<T>::value>::type {
+                Args.emplace_back(Arg);
             }
 
+            template <typename T>
+            auto setVal(T Type) ->
+                typename std::enable_if<std::is_enum<T>::value>::type {
+                Types.emplace_back(Type);
+            }
 
-            auto getStatements() -> std::vector<std::shared_ptr<statementsAST>>& {
+            void addAst(const auto& ast) {
+                Statements.emplace_back(std::move(ast));
+            }
+
+            auto getStatements() -> std::vector<std::shared_ptr<baseAST>>& {
                 return this->Statements;
             }
         };
 
-        struct moduleAST : public baseAST{
-            std::vector<std::shared_ptr<variableAST>> Vars;
-            std::vector<std::shared_ptr<functionAST>> Funcs;
+        struct funcCallAST : public baseAST {
+            std::string Name;
+            std::vector<variableAST> Args;
 
-            moduleAST():baseAST(AstID::ModuleID){};
-            static inline bool classof(baseAST const *base) {
+            funcCallAST(std::string name)
+                : baseAST(AstID::FuncCallID), Name(name){};
+            static inline bool classof(baseAST const* base) {
+                return base->getID() == AstID::FuncCallID;
+            }
+
+            void addAst(const auto& ast) { Args.emplace_back(std::move(ast)); }
+        };
+
+        struct moduleAST : public baseAST {
+            std::vector<std::shared_ptr<variableAST>> Vars;
+            std::vector<std::shared_ptr<funcCallAST>> Funcs;
+
+            moduleAST() : baseAST(AstID::ModuleID){};
+            static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::ModuleID;
             }
 
-            void addAst(const auto& ast,auto& type){
-                if(std::is_convertible<decltype(ast), std::shared_ptr<variableAST>>::value == true){
+            void addAst(const auto& ast, auto& type) {
+                if (std::is_convertible<decltype(ast),
+                                        std::shared_ptr<variableAST>>::value ==
+                    true) {
                     Vars.push_back(std::move(ast));
                 }
             }
 
-            void addAst(const auto& ast){
-                if(std::is_convertible<decltype(ast), std::shared_ptr<functionAST>>::value == true){
+            void addAst(const auto& ast) {
+                if (std::is_convertible<decltype(ast),
+                                        std::shared_ptr<funcCallAST>>::value ==
+                    true) {
                     Funcs.push_back(std::move(ast));
                 }
             }
-            auto getFuncs() -> std::vector<std::shared_ptr<functionAST>>& {
-                return this-> Funcs;
+            auto getFuncs() -> std::vector<std::shared_ptr<funcCallAST>>& {
+                return this->Funcs;
             }
 
             auto getVars() -> std::vector<std::shared_ptr<variableAST>>& {
@@ -233,10 +230,7 @@ namespace otter{
             }
         };
 
-
-
-    } //namespace ast
-} //namespace otter
-
+    }  // namespace ast
+}  // namespace otter
 
 #endif
