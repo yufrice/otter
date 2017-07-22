@@ -20,6 +20,20 @@ namespace otter {
                 return llvm::dyn_cast<Type>(rawPtr(ptr));
             }
 
+            decltype(auto) constantGet(std::shared_ptr<ast::baseAST> ast,
+                                       ast::TypeID type,
+                                       auto& context) -> llvm::Value* {
+                if (auto rawVal = sharedCast<ast::numberAST>(ast)) {
+                    if (type == ast::TypeID::Int) {
+                        auto valueType = llvm::Type::getInt32Ty(context);
+                        return llvm::ConstantInt::getSigned(valueType,
+                                                            rawVal->Val);
+                    } else {
+                        auto valueType = llvm::Type::getDoubleTy(context);
+                        return llvm::ConstantFP::get(valueType, rawVal->Val);
+                    }
+                }
+            }
         }  // name space detail
     }      // namespace codegen
 }  // namespace otter

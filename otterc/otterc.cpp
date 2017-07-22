@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
             pck.check();
 
             std::error_code err;
-            std::string out = std::string(argv[1]) + ".out";
+            std::string out = std::string(argv[1]) + ".ll";
             llvm::raw_fd_ostream raw_stream(out, err,
                                             llvm::sys::fs::OpenFlags::F_RW);
             codegen::Generator gen;

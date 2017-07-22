@@ -27,7 +27,7 @@ namespace otter {
                 std::shared_ptr<variableAST>);
             llvm::Function* GeneratorFunction(std::shared_ptr<variableAST>,
                                               TypeID);
-            llvm::Value* GeneratorValue(std::shared_ptr<baseAST>, llvm::Type*);
+            llvm::Value* GeneratorValue(std::shared_ptr<baseAST>, TypeID);
         };
     }  // namespace codegen
 }  // namespace otter

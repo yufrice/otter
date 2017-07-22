@@ -19,7 +19,7 @@ namespace otter {
 
         Module* Generator::generatorModule(std::shared_ptr<moduleAST> mod) {
             FunctionType* funcType = FunctionType::get(
-                llvm::Type::getInt32Ty(this->TheContext), false);
+                llvm::Type::getVoidTy(this->TheContext), false);
             Function* mainFunc = Function::Create(
                 funcType, Function::ExternalLinkage, "main", this->Module);
 
@@ -33,7 +33,21 @@ namespace otter {
                 }
             }
 
-            Builder->CreateRetVoid();
+            // test code
+            auto args = PointerType::get(Type::getInt8Ty(this->TheContext), 0);
+            llvm::Value* msg        = Builder->CreateGlobalStringPtr("%d\n");
+            FunctionType* func_type = FunctionType::get(
+                Type::getInt32Ty(this->TheContext), args, true);
+            Function* F = dyn_cast<Function>(
+                this->Module->getOrInsertFunction("printf", func_type));
+            std::vector<llvm::Value*> ar;
+            ar.push_back(msg);
+            auto a = this->Builder->CreateLoad(
+                (this->Module->getGlobalVariable("b")));
+            ar.push_back(a);
+            this->Builder->CreateCall(F, ar);
+
+            Builder->CreateRet(0);
             Module->dump();
             return this->Module;
         }
@@ -54,25 +68,23 @@ namespace otter {
                 std::cout << "id" << std::endl;
             } else {
                 Type* valueType;
+                Constant* constant;
+                Value* value;
                 if (var->Type == TypeID::Int) {
                     valueType = Type::getInt32Ty(this->TheContext);
+                    constant  = llvm::ConstantInt::getSigned(valueType, 0);
                 } else {
                     valueType = Type::getDoubleTy(this->TheContext);
+                    constant  = llvm::ConstantFP::get(valueType, 0.0);
                 }
-                Value* value = this->GeneratorValue(var->Val, valueType);
-                if (value) {
-                    auto gvar = new GlobalVariable(
-                        *this->Module, valueType, false,
-                        GlobalVariable::LinkageTypes::CommonLinkage, nullptr,
-                        var->Name);
-                    // gvar->setInitializer(value);
-                    this->Builder->CreateStore(gvar, value);
-                    if (gvar) {
-                        return true;
-                    }
-                } else {
-                    return false;
-                }
+                auto gvar = new GlobalVariable(
+                    *this->Module, valueType, false,
+                    GlobalVariable::LinkageTypes::CommonLinkage, nullptr,
+                    var->Name);
+                gvar->setInitializer(constant);
+                value = this->GeneratorValue(var->Val, var->Type);
+                this->Builder->CreateStore(value, gvar);
+                return true;
             }
         }
 
@@ -134,33 +146,41 @@ namespace otter {
         }
 
         Value* Generator::GeneratorValue(std::shared_ptr<baseAST> var,
-                                         Type* valueType) {
+                                         TypeID type) {
+            llvm::Type* valueType;
+            if (type == TypeID::Int) {
+                valueType = llvm::Type::getInt32Ty(this->TheContext);
+            } else {
+                valueType = llvm::Type::getDoubleTy(this->TheContext);
+            }
+
             if (auto rawVal = detail::sharedCast<identifierAST>(var)) {
                 return this->Builder->CreateLoad(
                     this->Module->getGlobalVariable(rawVal->Ident), "");
-            } else if (auto rawVal = detail::sharedCast<numberAST>(var)) {
-                return ConstantInt::getSigned(valueType, rawVal->Val);
+            } else if (detail::sharedIsa<numberAST>(var)) {
+                return detail::constantGet(std::move(var), type,
+                                           this->TheContext);
             } else if (auto rawVal = detail::sharedCast<binaryExprAST>(var)) {
                 if (rawVal->Rhs) {
                     if (rawVal->Op == "+") {
-                        return this->Builder->CreateAdd(
-                            GeneratorValue(rawVal->Lhs, valueType),
-                            GeneratorValue(rawVal->Rhs, valueType));
+                        return this->Builder->CreateFAdd(
+                            GeneratorValue(rawVal->Lhs, type),
+                            GeneratorValue(rawVal->Rhs, type));
                     } else if (rawVal->Op == "-") {
-                        return this->Builder->CreateSub(
-                            GeneratorValue(rawVal->Lhs, valueType),
-                            GeneratorValue(rawVal->Rhs, valueType));
+                        return this->Builder->CreateFSub(
+                            GeneratorValue(rawVal->Lhs, type),
+                            GeneratorValue(rawVal->Rhs, type));
                     } else if (rawVal->Op == "*") {
-                        return this->Builder->CreateMul(
-                            GeneratorValue(rawVal->Lhs, valueType),
-                            GeneratorValue(rawVal->Rhs, valueType));
+                        return this->Builder->CreateFMul(
+                            GeneratorValue(rawVal->Lhs, type),
+                            GeneratorValue(rawVal->Rhs, type));
                     } else if (rawVal->Op == "/") {
-                        return this->Builder->CreateSDiv(
-                            GeneratorValue(rawVal->Lhs, valueType),
-                            GeneratorValue(rawVal->Rhs, valueType));
+                        return this->Builder->CreateFDiv(
+                            GeneratorValue(rawVal->Lhs, type),
+                            GeneratorValue(rawVal->Rhs, type));
                     }
                 } else if (rawVal->Lhs) {
-                    return GeneratorValue(rawVal->Lhs, valueType);
+                    return GeneratorValue(rawVal->Lhs, type);
                 } else {
                     return nullptr;
                 }

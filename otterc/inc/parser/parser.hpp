@@ -107,7 +107,7 @@ namespace otter {
 
         auto const skkiper =
             x3::space | x3::standard_wide::space |
-            x3::lexeme[';' >> *(x3::char_ - x3::eol) >> x3::eol];
+            x3::lexeme["//" >> *(x3::char_ - x3::eol) >> x3::eol];
 
         BOOST_SPIRIT_DEFINE(value,
                             string,
