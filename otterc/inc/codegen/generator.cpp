@@ -26,11 +26,21 @@ namespace otter {
             BasicBlock* entry =
                 BasicBlock::Create(this->TheContext, "entry", mainFunc);
             Builder->SetInsertPoint(entry);
+
             Builder->CreateRetVoid();
 
             for (auto var : mod->Vars) {
-                if (generateGlovalVariable(var)) {
-                    // throw std::string("type error");
+                if (!generateGlovalVariable(var)) {
+                    throw std::string("type error");
+                }
+            }
+
+            auto bbEnd = --(entry->end());
+            for (auto func : mod->Funcs) {
+                if (auto inst = (generateCallFunc(func))) {
+                    entry->getInstList().insert(bbEnd, inst);
+                } else {
+                    throw std::string("type error");
                 }
             }
 
@@ -100,6 +110,15 @@ namespace otter {
 
                 gvar->setInitializer(strCons);
                 return gvar;
+            }
+        }
+
+        CallInst* Generator::generateCallFunc(std::shared_ptr<baseAST> expr) {
+            std::vector<llvm::Value*> args;
+            if (auto rawCall = detail::sharedCast<funcCallAST>(expr)) {
+                return CallInst::Create(
+                    this->Module->getFunction(rawCall->Name), args,
+                    rawCall->Name);
             }
         }
 
@@ -173,7 +192,6 @@ namespace otter {
         }
 
         Value* Generator::generateVariable(std::shared_ptr<variableAST> var) {
-            std::cout << var->Name << std::endl;
             if (detail::sharedIsa<functionAST>(var->Val)) {
                 return this->GeneratorFunction(var, var->Type);
             } else if (detail::sharedIsa<stringAST>(var->Val)) {
