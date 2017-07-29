@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #include <boost/spirit/home/x3.hpp>
-#include "on_error.hpp"
+#include "onError.hpp"
 #include "helper.hpp"
 
 namespace otter {
@@ -19,8 +19,8 @@ namespace otter {
             "function");
         x3::rule<class variable, std::shared_ptr<variableAST>> const variable(
             "variable");
-        x3::rule<class statement, std::shared_ptr<statementsAST>> const
-            statement("statement");
+        x3::rule<class statement, std::shared_ptr<baseAST>> const statement(
+            "statement");
 
         x3::rule<class funcCall, std::shared_ptr<funcCallAST>> const funcCall(
             "funcCall");
@@ -28,9 +28,9 @@ namespace otter {
             "lambda");
 
         x3::rule<class expr, std::shared_ptr<baseAST>> const expr("expr");
-        x3::rule<class notExpr, std::shared_ptr<baseAST>> const notExpr(
+        x3::rule<class notExpr, std::shared_ptr<monoExprAST>> const notExpr(
             "notExpr");
-        x3::rule<class boolExpr, std::shared_ptr<baseAST>> const boolExpr(
+        x3::rule<class boolExpr, std::shared_ptr<monoExprAST>> const boolExpr(
             "boolExpr");
         x3::rule<class addExpr, std::shared_ptr<binaryExprAST>> const addExpr(
             "addExpr");
@@ -60,14 +60,12 @@ namespace otter {
                                     mulExpr[detail::addAST()]) |
                                    (x3::lit("-")[detail::sharedAdd("-")] >>
                                     mulExpr[detail::addAST()]));
-        auto const boolExpr_def = addExpr >>
-                                  *(("=" >> addExpr) | ("<" >> addExpr) |
-                                    (">" >> addExpr) |
-                                    ("<=" >> addExpr) |
-                                    ("=>" >> addExpr) |
-                                    (">=" >> addExpr));
-        auto const notExpr_def =
-            boolExpr | x3::lit("!")[detail::assign("!")] >> boolExpr;
+        auto const boolExpr_def =
+            addExpr[detail::assign()] >>
+            *((x3::lit("<") | x3::lit(">") | x3::lit("<=") | x3::lit(">=")) >>
+              addExpr[detail::addAST()]);
+        auto const notExpr_def = boolExpr[detail::addAST()] |
+                                 x3::lit("!")[detail::assign("!")] >> boolExpr;
         auto const expr_def = notExpr[detail::addAST("lhs")] >>
                               *((x3::lit("&&")[detail::assign("&&")] >>
                                  notExpr[detail::addAST("rhs")]) |
@@ -77,7 +75,10 @@ namespace otter {
         auto const function_def =
             x3::lit("[](")[detail::sharedAssign<functionAST>(nullptr)] >>
             *(id[detail::sharedAdd()] >> type[detail::sharedAdd()]) >>
-            x3::lit(')') >> +number[detail::addAST()] >> x3::lit(";");
+            x3::lit(')') >>
+            +(funcCall[detail::addAST()] | statement[detail::addAST()]) >>
+            x3::lit(";");
+
         auto const string_def = x3::lit('"') >>
                                 +((x3::char_)-x3::lit('"')) >> x3::lit('"');
         auto const value_def = string[detail::sharedAssign<stringAST>()];
@@ -95,8 +96,9 @@ namespace otter {
                                    addExpr[detail::addAST()] |
                                    function[detail::addAST()]);
 
-        auto const statement_def = id[detail::sharedAssign<statementsAST>()] >>
-                                   (id[detail::sharedAdd()]);
+        auto const statement_def = variable[detail::assign()] |
+                                   id[detail::sharedAssign<statementsAST>()];
+
         auto const funcCall_def = id[detail::sharedAssign<funcCallAST>()] >>
                                   x3::lit('(') >>
                                   *(id[detail::addAST()]) >> x3::lit(')');

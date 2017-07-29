@@ -22,11 +22,14 @@ namespace otter {
             static llvm::LLVMContext TheContext;
             llvm::IRBuilder<>* Builder;
             llvm::Module* Module;
-            bool generateGlovalVariable(std::shared_ptr<variableAST>);
+            llvm::Value* generateGlovalVariable(std::shared_ptr<variableAST>);
             llvm::GlobalVariable* GeneratorGlobalString(
                 std::shared_ptr<variableAST>);
+            llvm::Value* generateVariable(std::shared_ptr<variableAST>);
+            llvm::Value* generateString(std::shared_ptr<variableAST>);
             llvm::Function* GeneratorFunction(std::shared_ptr<variableAST>,
                                               TypeID);
+            llvm::Value* GeneratorStatement(std::shared_ptr<baseAST>);
             llvm::Value* GeneratorValue(std::shared_ptr<baseAST>, TypeID);
         };
     }  // namespace codegen

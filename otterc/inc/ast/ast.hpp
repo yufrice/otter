@@ -102,7 +102,9 @@ namespace otter {
             std::string Op;
             std::shared_ptr<baseAST> Lhs;
 
-            monoExprAST() : baseAST(AstID::MonoExprID) {}
+            monoExprAST(std::string op) : baseAST(AstID::MonoExprID), Op(op) {}
+            monoExprAST(std::shared_ptr<baseAST>& ast)
+                : baseAST(AstID::MonoExprID), Lhs(std::move(ast)) {}
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::MonoExprID;
             }

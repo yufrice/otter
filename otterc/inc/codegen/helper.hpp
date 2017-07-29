@@ -20,6 +20,11 @@ namespace otter {
                 return llvm::dyn_cast<Type>(rawPtr(ptr));
             }
 
+            template <typename Type, typename T>
+            decltype(auto) shared4Shared(std::shared_ptr<T> ptr) {
+                return std::dynamic_pointer_cast<Type>(ptr);
+            }
+
             decltype(auto) constantGet(std::shared_ptr<ast::baseAST> ast,
                                        ast::TypeID type,
                                        auto& context) -> llvm::Value* {
