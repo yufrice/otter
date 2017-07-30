@@ -171,7 +171,6 @@ namespace otter {
                 for (auto& st : rawVal->Statements) {
                     ret = GeneratorStatement(st, func);
                 }
-
                 if (var->Type == TypeID::Unit) {
                     Builder->CreateRetVoid();
                 } else {
@@ -189,9 +188,17 @@ namespace otter {
                 return generateVariable(
                     detail::shared4Shared<variableAST>(stmt));
             } else if (detail::sharedIsa<binaryExprAST>(stmt)) {
-                auto value = this->GeneratorValue(stmt, TypeID::Double);
-                return Builder->CreateAlloca(
-                    llvm::Type::getDoubleTy(this->TheContext), value, "ret");
+                TypeID type;
+                if (llvm::Type::getDoubleTy(this->TheContext) ==
+                    func->getReturnType()) {
+                    type = TypeID::Double;
+                } else if (llvm::Type::getInt32Ty(this->TheContext) ==
+                           func->getReturnType()) {
+                    type = TypeID::Int;
+                }
+                auto value = this->GeneratorValue(stmt, type);
+                return Builder->CreateAlloca(func->getReturnType(), value,
+                                             "ret");
             } else if (detail::sharedIsa<stringAST>(stmt)) {
                 if (auto rawStr = detail::sharedCast<stringAST>(stmt)) {
                     return ConstantDataArray::getString(this->TheContext,
