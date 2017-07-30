@@ -27,22 +27,22 @@ namespace otter {
                 BasicBlock::Create(this->TheContext, "entry", mainFunc);
             Builder->SetInsertPoint(entry);
 
-            Builder->CreateRetVoid();
-
             for (auto var : mod->Vars) {
                 if (!generateGlovalVariable(var)) {
                     throw std::string("type error");
                 }
             }
 
-            auto bbEnd = --(entry->end());
             for (auto func : mod->Funcs) {
                 if (auto inst = (generateCallFunc(func))) {
-                    entry->getInstList().insert(bbEnd, inst);
+                    entry->getInstList().insert(entry->end(), inst);
                 } else {
                     throw std::string("type error");
                 }
             }
+
+            auto retVoid = ReturnInst::Create(this->TheContext);
+            entry->getInstList().insert(entry->end(), retVoid);
 
             // test code
             // auto args = PointerType::get(Type::getInt8Ty(this->TheContext),
@@ -66,7 +66,7 @@ namespace otter {
         Value* Generator::generateGlovalVariable(
             std::shared_ptr<variableAST> var) {
             if (detail::sharedIsa<functionAST>(var->Val)) {
-                return this->GeneratorFunction(var, var->Type);
+                return this->GeneratorFunction(var);
             } else if (detail::sharedIsa<stringAST>(var->Val)) {
                 if (TypeID::String == var->Type) {
                     return this->GeneratorGlobalString(var);
@@ -122,8 +122,8 @@ namespace otter {
             }
         }
 
-        Function* Generator::GeneratorFunction(std::shared_ptr<variableAST> var,
-                                               TypeID funcType) {
+        Function* Generator::GeneratorFunction(
+            std::shared_ptr<variableAST> var) {
             FunctionType* Type;
             std::vector<llvm::Type*> typeArgs;
             if (auto rawVal = detail::sharedCast<functionAST>(var->Val)) {
@@ -142,19 +142,19 @@ namespace otter {
                     }
                 }
                 ArrayRef<llvm::Type*> argsRef(typeArgs);
-                if (funcType == TypeID::Int) {
+                if (var->Type == TypeID::Int) {
                     Type = FunctionType::get(
                         llvm::Type::getInt32Ty(this->TheContext), argsRef,
                         false);
-                } else if (funcType == TypeID::Double) {
+                } else if (var->Type == TypeID::Double) {
                     Type = FunctionType::get(
                         llvm::Type::getDoubleTy(this->TheContext), argsRef,
                         false);
-                } else if (funcType == TypeID::String) {
+                } else if (var->Type == TypeID::String) {
                     Type = FunctionType::get(
                         PointerType::get(Type::getInt8Ty(this->TheContext), 0),
                         argsRef, false);
-                } else if (funcType == TypeID::Unit) {
+                } else if (var->Type == TypeID::Unit) {
                     Type = FunctionType::get(
                         llvm::Type::getVoidTy(this->TheContext), argsRef,
                         false);
@@ -167,14 +167,13 @@ namespace otter {
                     BasicBlock::Create(this->TheContext, "entry", func);
                 Builder->SetInsertPoint(bblock);
                 Value* ret;
+
                 for (auto& st : rawVal->Statements) {
-                    ret = GeneratorStatement(st);
+                    ret = GeneratorStatement(st, func);
                 }
 
-                if (funcType == TypeID::Unit) {
+                if (var->Type == TypeID::Unit) {
                     Builder->CreateRetVoid();
-                } else if (funcType == TypeID::String) {
-                    Builder->CreateRet(ret);
                 } else {
                     Builder->CreateRet(ret);
                 }
@@ -182,35 +181,48 @@ namespace otter {
             }
         }
 
-        Value* Generator::GeneratorStatement(std::shared_ptr<baseAST> stmt) {
+        Value* Generator::GeneratorStatement(std::shared_ptr<baseAST> stmt,
+                                             Function* func) {
             if (detail::sharedIsa<funcCallAST>(stmt)) {
-                std::cout << "call" << std::endl;
+                return generateCallFunc(stmt);
             } else if (detail::sharedIsa<variableAST>(stmt)) {
                 return generateVariable(
                     detail::shared4Shared<variableAST>(stmt));
+            } else if (detail::sharedIsa<binaryExprAST>(stmt)) {
+                auto value = this->GeneratorValue(stmt, TypeID::Double);
+                return Builder->CreateAlloca(
+                    llvm::Type::getDoubleTy(this->TheContext), value, "ret");
+            } else if (detail::sharedIsa<stringAST>(stmt)) {
+                if (auto rawStr = detail::sharedCast<stringAST>(stmt)) {
+                    return ConstantDataArray::getString(this->TheContext,
+                                                        rawStr->Str + "\n");
+                }
             }
         }
 
         Value* Generator::generateVariable(std::shared_ptr<variableAST> var) {
             if (detail::sharedIsa<functionAST>(var->Val)) {
-                return this->GeneratorFunction(var, var->Type);
+                return this->GeneratorFunction(var);
             } else if (detail::sharedIsa<stringAST>(var->Val)) {
                 if (TypeID::String == var->Type) {
                     return this->generateString(var);
                 }
-                // } else if (detail::sharedIsa<identifierAST>(var->Val)) {
-                //     std::cout << "id" << std::endl;
-                // } else {
+            } else if (detail::sharedIsa<identifierAST>(var->Val)) {
+                std::cout << "id" << std::endl;
+            } else if (detail::sharedIsa<binaryExprAST>(var->Val)) {
+                std::cout << "expr" << std::endl;
                 //     Type* valueType;
                 //     Constant* constant;
                 //     Value* value;
                 //     if (var->Type == TypeID::Int) {
-                //         valueType = Type::getInt32Ty(this->TheContext);
+                //         valueType =
+                //         Type::getInt32Ty(this->TheContext);
                 //         constant  =
                 //         llvm::ConstantInt::getSigned(valueType,
                 //         0);
                 //     } else {
-                //         valueType = Type::getDoubleTy(this->TheContext);
+                //         valueType =
+                //         Type::getDoubleTy(this->TheContext);
                 //         constant  = llvm::ConstantFP::get(valueType,
                 //         0.0);
                 //     }
@@ -220,7 +232,8 @@ namespace otter {
                 //         nullptr,
                 //         var->Name);
                 //     gvar->setInitializer(constant);
-                //     value = this->GeneratorValue(var->Val, var->Type);
+                //     value = this->GeneratorValue(var->Val,
+                //     var->Type);
                 //     this->Builder->CreateStore(value, gvar);
                 //     return true;
             }

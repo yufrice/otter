@@ -76,8 +76,11 @@ namespace otter {
             x3::lit("[](")[detail::sharedAssign<functionAST>(nullptr)] >>
             *(id[detail::sharedAdd()] >> type[detail::sharedAdd()]) >>
             x3::lit(')') >>
-            +(funcCall[detail::addAST()] | statement[detail::addAST()]) >>
-            x3::lit(";");
+            *(funcCall[detail::addAST()] | variable[detail::addAST()]) >>
+            ((addExpr[detail::addAST()] |
+              string[detail::addAST<stringAST>()]) >>
+                 x3::lit(";") |
+             x3::lit(";"));
 
         auto const string_def = x3::lit('"') >>
                                 +((x3::char_)-x3::lit('"')) >> x3::lit('"');
@@ -96,8 +99,7 @@ namespace otter {
                                    addExpr[detail::addAST()] |
                                    function[detail::addAST()]);
 
-        auto const statement_def = variable[detail::assign()] |
-                                   id[detail::sharedAssign<statementsAST>()];
+        // auto const statement_def = variable[detail::assign()];
 
         auto const funcCall_def = id[detail::sharedAssign<funcCallAST>()] >>
                                   x3::lit('(') >>
@@ -121,7 +123,7 @@ namespace otter {
                             addExpr,
                             mulExpr,
                             number,
-                            statement,
+                            // statement,
                             variable,
                             function,
                             module,

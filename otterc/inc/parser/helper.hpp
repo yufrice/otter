@@ -47,6 +47,13 @@ namespace otter {
                 };
             }
 
+            template <typename T>
+            decltype(auto) addAST() {
+                return [](auto& ctx) {
+                    x3::_val(ctx)->addAst(std::make_shared<T>(x3::_attr(ctx)));
+                };
+            }
+
             decltype(auto) addAST(auto&& arg) {
                 return [&arg](auto& ctx) {
                     x3::_val(ctx)->addAst(std::move(x3::_attr(ctx)), arg);
