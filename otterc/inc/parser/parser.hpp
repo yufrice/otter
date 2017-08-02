@@ -24,6 +24,8 @@ namespace otter {
 
         x3::rule<class funcCall, std::shared_ptr<funcCallAST>> const funcCall(
             "funcCall");
+        x3::rule<class builtIn, std::shared_ptr<funcCallAST>> const builtIn(
+            "builtIn");
         x3::rule<class lambda, std::shared_ptr<functionAST>> const lambda(
             "lambda");
 
@@ -32,9 +34,9 @@ namespace otter {
             "notExpr");
         x3::rule<class boolExpr, std::shared_ptr<monoExprAST>> const boolExpr(
             "boolExpr");
-        x3::rule<class addExpr, std::shared_ptr<binaryExprAST>> const addExpr(
+        x3::rule<class addExpr, std::shared_ptr<baseAST>> const addExpr(
             "addExpr");
-        x3::rule<class mulExpr, std::shared_ptr<binaryExprAST>> const mulExpr(
+        x3::rule<class mulExpr, std::shared_ptr<baseAST>> const mulExpr(
             "mulExpr");
         x3::rule<class number, std::shared_ptr<baseAST>> const number("number");
 
@@ -50,16 +52,16 @@ namespace otter {
                                 x3::int_[detail::sharedAssign<numberAST>()] |
                                 '(' >> addExpr[detail::assign()] >> ')';
         auto const mulExpr_def =
-            number[detail::sharedAssign<binaryExprAST>()] >>
-            *((x3::lit("*")[detail::sharedAdd("*")] >>
-               number[detail::addAST()]) |
-              (x3::lit("/")[detail::sharedAdd("/")] >>
-               number[detail::addAST()]));
+            number[detail::assign()] >>
+            *((x3::lit("*") >>
+               number[detail::makeBinaryExpr<binaryExprAST>("*")]) |
+              (x3::lit("/") >>
+               number[detail::makeBinaryExpr<binaryExprAST>("/")]));
         auto const addExpr_def = mulExpr[detail::assign()] >>
-                                 *((x3::lit("+")[detail::sharedAdd("+")] >>
-                                    mulExpr[detail::addAST()]) |
-                                   (x3::lit("-")[detail::sharedAdd("-")] >>
-                                    mulExpr[detail::addAST()]));
+                                 *((x3::lit("+") >>
+                                    mulExpr[detail::makeBinaryExpr<binaryExprAST>("+")]) |
+                                   (x3::lit("-") >>
+                                    mulExpr[detail::makeBinaryExpr<binaryExprAST>("-")]));
         auto const boolExpr_def =
             addExpr[detail::assign()] >>
             *((x3::lit("<") | x3::lit(">") | x3::lit("<=") | x3::lit(">=")) >>
@@ -76,7 +78,8 @@ namespace otter {
             x3::lit("[](")[detail::sharedAssign<functionAST>(nullptr)] >>
             *(id[detail::sharedAdd()] >> type[detail::sharedAdd()]) >>
             x3::lit(')') >>
-            *(funcCall[detail::addAST()] | variable[detail::addAST()]) >>
+            *(builtIn[detail::addAST()] | funcCall[detail::addAST()] |
+              variable[detail::addAST()]) >>
             ((addExpr[detail::addAST()] |
               string[detail::addAST<stringAST>()]) >>
                  x3::lit(";") |
@@ -103,10 +106,15 @@ namespace otter {
 
         auto const funcCall_def = id[detail::sharedAssign<funcCallAST>()] >>
                                   x3::lit('(') >>
-                                  *(id[detail::addAST()]) >> x3::lit(')');
+                                  *(addExpr[detail::addAST()]) >> x3::lit(')');
+
+        auto const builtIn_def =
+            x3::string("print")[detail::sharedAssign<funcCallAST>()] >>
+            x3::lit('(') >> addExpr[detail::addAST()] >> x3::lit(')');
 
         auto const module_def =
             *(variable[detail::addAST(typeid(variableAST))] |
+              builtIn[detail::addAST()] |
               funcCall[detail::addAST()]);
 
         auto const skkiper =
@@ -117,6 +125,7 @@ namespace otter {
                             string,
                             type,
                             funcCall,
+                            builtIn,
                             expr,
                             notExpr,
                             boolExpr,

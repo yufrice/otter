@@ -116,9 +116,12 @@ namespace otter {
         CallInst* Generator::generateCallFunc(std::shared_ptr<baseAST> expr) {
             std::vector<llvm::Value*> args;
             if (auto rawCall = detail::sharedCast<funcCallAST>(expr)) {
-                return CallInst::Create(
-                    this->Module->getFunction(rawCall->Name), args,
-                    rawCall->Name);
+                if (rawCall->Name == "print") {
+                } else {
+                    return CallInst::Create(
+                        this->Module->getFunction(rawCall->Name), args,
+                        rawCall->Name);
+                }
             }
         }
 
@@ -264,6 +267,7 @@ namespace otter {
 
         Value* Generator::GeneratorValue(std::shared_ptr<baseAST> var,
                                          TypeID type) {
+            std::cout << "\n kaisou ";
             llvm::Type* valueType;
             if (type == TypeID::Int) {
                 valueType = llvm::Type::getInt32Ty(this->TheContext);
@@ -279,22 +283,47 @@ namespace otter {
                                            this->TheContext);
             } else if (auto rawVal = detail::sharedCast<binaryExprAST>(var)) {
                 if (rawVal->Rhs) {
+                    std::cout << rawVal->Op << " ";
                     if (rawVal->Op == "+") {
-                        return this->Builder->CreateFAdd(
-                            GeneratorValue(rawVal->Lhs, type),
-                            GeneratorValue(rawVal->Rhs, type));
+                        if (type == TypeID::Int) {
+                            return this->Builder->CreateAdd(
+                                GeneratorValue(rawVal->Lhs, type),
+                                GeneratorValue(rawVal->Rhs, type));
+                        } else {
+                            return this->Builder->CreateFAdd(
+                                GeneratorValue(rawVal->Lhs, type),
+                                GeneratorValue(rawVal->Rhs, type));
+                        }
                     } else if (rawVal->Op == "-") {
-                        return this->Builder->CreateFSub(
-                            GeneratorValue(rawVal->Lhs, type),
-                            GeneratorValue(rawVal->Rhs, type));
+                        if (type == TypeID::Int) {
+                            return this->Builder->CreateSub(
+                                GeneratorValue(rawVal->Lhs, type),
+                                GeneratorValue(rawVal->Rhs, type));
+                        } else {
+                            return this->Builder->CreateFSub(
+                                GeneratorValue(rawVal->Lhs, type),
+                                GeneratorValue(rawVal->Rhs, type));
+                        }
                     } else if (rawVal->Op == "*") {
-                        return this->Builder->CreateFMul(
-                            GeneratorValue(rawVal->Lhs, type),
-                            GeneratorValue(rawVal->Rhs, type));
+                        if (type == TypeID::Int) {
+                            return this->Builder->CreateMul(
+                                GeneratorValue(rawVal->Lhs, type),
+                                GeneratorValue(rawVal->Rhs, type));
+                        } else {
+                            return this->Builder->CreateFMul(
+                                GeneratorValue(rawVal->Lhs, type),
+                                GeneratorValue(rawVal->Rhs, type));
+                        }
                     } else if (rawVal->Op == "/") {
-                        return this->Builder->CreateFDiv(
-                            GeneratorValue(rawVal->Lhs, type),
-                            GeneratorValue(rawVal->Rhs, type));
+                        if (type == TypeID::Int) {
+                            return this->Builder->CreateSDiv(
+                                GeneratorValue(rawVal->Lhs, type),
+                                GeneratorValue(rawVal->Rhs, type));
+                        } else {
+                            return this->Builder->CreateFDiv(
+                                GeneratorValue(rawVal->Lhs, type),
+                                GeneratorValue(rawVal->Rhs, type));
+                        }
                     }
                 } else if (rawVal->Lhs) {
                     return GeneratorValue(rawVal->Lhs, type);

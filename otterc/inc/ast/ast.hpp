@@ -77,25 +77,11 @@ namespace otter {
             std::shared_ptr<baseAST> Lhs;
             std::shared_ptr<baseAST> Rhs;
 
-            binaryExprAST(std::shared_ptr<baseAST>& ast)
-                : baseAST(AstID::BinExprID), Lhs(std::move(ast)) {}
+            binaryExprAST(std::shared_ptr<baseAST>& lhs,std::string op, std::shared_ptr<baseAST>& rhs)
+                : baseAST(AstID::BinExprID), Lhs(lhs),Rhs(rhs),Op(op) {}
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::BinExprID;
             }
-
-            void addAst(const auto& ast) { this->Rhs = std::move(ast); }
-
-            template <typename T>
-            void setLhs(const T& ast) {
-                this->Lhs = std::move(ast);
-            }
-
-            template <typename T>
-            void setRhs(const T& ast) {
-                this->Rhs = std::move(ast);
-            }
-
-            void setVal(const std::string& op) { this->Op = op; }
         };
 
         struct monoExprAST : public baseAST {
@@ -188,7 +174,7 @@ namespace otter {
 
         struct funcCallAST : public baseAST {
             std::string Name;
-            std::vector<variableAST> Args;
+            std::vector<std::shared_ptr<baseAST>> Args;
 
             funcCallAST(std::string name)
                 : baseAST(AstID::FuncCallID), Name(name){};
