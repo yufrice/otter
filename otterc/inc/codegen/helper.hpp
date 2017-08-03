@@ -29,7 +29,6 @@ namespace otter {
                                        ast::TypeID type,
                                        auto& context) -> llvm::Value* {
                 if (auto rawVal = sharedCast<ast::numberAST>(ast)) {
-                    std::cout << rawVal->Val << " ";
                     if (type == ast::TypeID::Int) {
                         auto valueType = llvm::Type::getInt32Ty(context);
                         return llvm::ConstantInt::getSigned(valueType,
@@ -40,6 +39,22 @@ namespace otter {
                     }
                 }
             }
+
+            decltype(auto) type2type(ast::TypeID& type,auto& context) -> llvm::Type*{
+                if(type == ast::TypeID::Int){
+                    return llvm::Type::getInt32Ty(context);
+                }else if(type == ast::TypeID::Double){
+                    return llvm::Type::getDoubleTy(context);
+                }
+            }
+            decltype(auto) type2type(llvm::Type*& type,auto& context){
+                if(type == llvm::Type::getInt32Ty(context)){
+                    return ast::TypeID::Int;
+                }else if(type == llvm::Type::getDoubleTy(context)){
+                    return ast::TypeID::Double;
+                }
+            }
+
         }  // name space detail
     }      // namespace codegen
 }  // namespace otter

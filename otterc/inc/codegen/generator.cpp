@@ -67,29 +67,26 @@ namespace otter {
             std::shared_ptr<variableAST> var) {
             if (detail::sharedIsa<functionAST>(var->Val)) {
                 return this->GeneratorFunction(var);
-            } else if (detail::sharedIsa<stringAST>(var->Val)) {
-                if (TypeID::String == var->Type) {
+            } else if (TypeID::String == var->Type) {
+                if (detail::sharedIsa<stringAST>(var->Val)) {
                     return this->GeneratorGlobalString(var);
+                }else if (detail::sharedIsa<identifierAST>(var->Val)) {
+                    //ToDO
+                    throw std::string("id");
                 }
-            } else if (detail::sharedIsa<identifierAST>(var->Val)) {
-                std::cout << "id" << std::endl;
             } else {
-                Type* valueType;
                 Constant* constant;
-                Value* value;
                 if (var->Type == TypeID::Int) {
-                    valueType = Type::getInt32Ty(this->TheContext);
-                    constant  = llvm::ConstantInt::getSigned(valueType, 0);
-                } else {
-                    valueType = Type::getDoubleTy(this->TheContext);
-                    constant  = llvm::ConstantFP::get(valueType, 0.0);
+                    constant  = llvm::ConstantInt::getSigned(Type::getInt32Ty(this->TheContext),0);
+                } else if(var->Type == TypeID::Double){
+                    constant  = llvm::ConstantFP::get(Type::getDoubleTy(this->TheContext), 0.0);
                 }
                 auto gvar = new GlobalVariable(
-                    *this->Module, valueType, false,
+                    *this->Module, detail::type2type(var->Type,this->TheContext), false,
                     GlobalVariable::LinkageTypes::CommonLinkage, nullptr,
                     var->Name);
                 gvar->setInitializer(constant);
-                value = this->GeneratorValue(var->Val, var->Type);
+                Value* value = this->GeneratorValue(var->Val, var->Type);
                 return this->Builder->CreateStore(value, gvar);
             }
         }
@@ -176,6 +173,8 @@ namespace otter {
                 }
                 if (var->Type == TypeID::Unit) {
                     Builder->CreateRetVoid();
+                } else if(var->Type == TypeID::Int){
+                    Builder->CreateRet(ret);
                 } else {
                     Builder->CreateRet(ret);
                 }
@@ -202,6 +201,15 @@ namespace otter {
                 auto value = this->GeneratorValue(stmt, type);
                 return Builder->CreateAlloca(func->getReturnType(), value,
                                              "ret");
+            } else if (detail::sharedIsa<numberAST>(stmt)) {
+                if(auto rawNum = detail::sharedCast<numberAST>(stmt)){
+                if (llvm::Type::getDoubleTy(this->TheContext) ==
+                    func->getReturnType()) {
+                        return llvm::ConstantFP::get(func->getReturnType() , rawNum->Val);
+                    }else{
+                        return llvm::ConstantInt::get(func->getReturnType() , rawNum->Val);
+                    }
+                }
             } else if (detail::sharedIsa<stringAST>(stmt)) {
                 if (auto rawStr = detail::sharedCast<stringAST>(stmt)) {
                     return ConstantDataArray::getString(this->TheContext,
@@ -221,31 +229,6 @@ namespace otter {
                 std::cout << "id" << std::endl;
             } else if (detail::sharedIsa<binaryExprAST>(var->Val)) {
                 std::cout << "expr" << std::endl;
-                //     Type* valueType;
-                //     Constant* constant;
-                //     Value* value;
-                //     if (var->Type == TypeID::Int) {
-                //         valueType =
-                //         Type::getInt32Ty(this->TheContext);
-                //         constant  =
-                //         llvm::ConstantInt::getSigned(valueType,
-                //         0);
-                //     } else {
-                //         valueType =
-                //         Type::getDoubleTy(this->TheContext);
-                //         constant  = llvm::ConstantFP::get(valueType,
-                //         0.0);
-                //     }
-                //     auto gvar = new GlobalVariable(
-                //         *this->Module, valueType, false,
-                //         GlobalVariable::LinkageTypes::CommonLinkage,
-                //         nullptr,
-                //         var->Name);
-                //     gvar->setInitializer(constant);
-                //     value = this->GeneratorValue(var->Val,
-                //     var->Type);
-                //     this->Builder->CreateStore(value, gvar);
-                //     return true;
             }
         }
 
@@ -267,14 +250,6 @@ namespace otter {
 
         Value* Generator::GeneratorValue(std::shared_ptr<baseAST> var,
                                          TypeID type) {
-            std::cout << "\n kaisou ";
-            llvm::Type* valueType;
-            if (type == TypeID::Int) {
-                valueType = llvm::Type::getInt32Ty(this->TheContext);
-            } else {
-                valueType = llvm::Type::getDoubleTy(this->TheContext);
-            }
-
             if (auto rawVal = detail::sharedCast<identifierAST>(var)) {
                 return this->Builder->CreateLoad(
                     this->Module->getGlobalVariable(rawVal->Ident), "");
@@ -283,7 +258,6 @@ namespace otter {
                                            this->TheContext);
             } else if (auto rawVal = detail::sharedCast<binaryExprAST>(var)) {
                 if (rawVal->Rhs) {
-                    std::cout << rawVal->Op << " ";
                     if (rawVal->Op == "+") {
                         if (type == TypeID::Int) {
                             return this->Builder->CreateAdd(
