@@ -26,12 +26,14 @@ namespace otter {
             llvm::GlobalVariable* GeneratorGlobalString(
                 std::shared_ptr<variableAST>);
             llvm::Value* generateVariable(std::shared_ptr<variableAST>);
+            llvm::Value* generateValue(std::shared_ptr<baseAST>);
             llvm::Value* generateString(std::shared_ptr<variableAST>);
             llvm::CallInst* generateCallFunc(std::shared_ptr<baseAST>);
             llvm::Function* GeneratorFunction(std::shared_ptr<variableAST>);
             llvm::Value* GeneratorStatement(std::shared_ptr<baseAST>,
                                             llvm::Function*);
             llvm::Value* GeneratorValue(std::shared_ptr<baseAST>, TypeID);
+            llvm::Value* GeneratorGlobalValue(std::shared_ptr<baseAST>, TypeID);
         };
     }  // namespace codegen
 }  // namespace otter

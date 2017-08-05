@@ -45,6 +45,8 @@ namespace otter {
                     return llvm::Type::getInt32Ty(context);
                 }else if(type == ast::TypeID::Double){
                     return llvm::Type::getDoubleTy(context);
+                }else if(type == ast::TypeID::String){
+                    return llvm::Type::getInt8Ty(context);
                 }
             }
             decltype(auto) type2type(llvm::Type*& type,auto& context){
