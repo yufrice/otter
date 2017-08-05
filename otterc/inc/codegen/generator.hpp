@@ -5,6 +5,7 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/GlobalVariable.h>
+#include <llvm/IR/ValueSymbolTable.h>
 #include "../ast/ast.hpp"
 #include "helper.hpp"
 
@@ -25,15 +26,13 @@ namespace otter {
             llvm::Value* generateGlovalVariable(std::shared_ptr<variableAST>);
             llvm::GlobalVariable* GeneratorGlobalString(
                 std::shared_ptr<variableAST>);
-            llvm::Value* generateVariable(std::shared_ptr<variableAST>);
-            llvm::Value* generateValue(std::shared_ptr<baseAST>);
+            llvm::Value* generateVariable(std::shared_ptr<variableAST>,auto);
             llvm::Value* generateString(std::shared_ptr<variableAST>);
             llvm::CallInst* generateCallFunc(std::shared_ptr<baseAST>);
             llvm::Function* GeneratorFunction(std::shared_ptr<variableAST>);
             llvm::Value* GeneratorStatement(std::shared_ptr<baseAST>,
                                             llvm::Function*);
-            llvm::Value* GeneratorValue(std::shared_ptr<baseAST>, TypeID);
-            llvm::Value* GeneratorGlobalValue(std::shared_ptr<baseAST>, TypeID);
+            llvm::Value* GeneratorGlobalValue(std::shared_ptr<baseAST>, TypeID,llvm::ValueSymbolTable* vTable = nullptr);
         };
     }  // namespace codegen
 }  // namespace otter

@@ -70,8 +70,7 @@ namespace otter {
             }else if (var->Type == TypeID::String) {
                 if (detail::sharedIsa<stringAST>(var->Val)) {
                     return this->GeneratorGlobalString(var);
-                }
-                else if (detail::sharedIsa<identifierAST>(var->Val)) {
+                }else if (detail::sharedIsa<identifierAST>(var->Val)) {
                     if(auto rawID = detail::sharedCast<identifierAST>(var->Val)){
                         auto id = this->Module->getGlobalVariable(rawID->Ident);
                         auto gvar = new GlobalVariable(
@@ -83,15 +82,32 @@ namespace otter {
                 }
             } else {
                 Constant* constant;
+                double init = 0;
+                if (detail::sharedIsa<numberAST>(var->Val)) {
+                    if(auto rawNum = detail::sharedCast<numberAST>(var->Val)){
+                        init = rawNum->Val;
+                    }
+                }
+
                 if (var->Type == TypeID::Int) {
-                    constant  = llvm::ConstantInt::getSigned(Type::getInt32Ty(this->TheContext),0);
+                    constant  = llvm::ConstantInt::getSigned(Type::getInt32Ty(this->TheContext),init);
                 } else if(var->Type == TypeID::Double){
-                    constant  = llvm::ConstantFP::get(Type::getDoubleTy(this->TheContext), 0.0);
+                    constant  = llvm::ConstantFP::get(Type::getDoubleTy(this->TheContext), init);
                 }
                 auto gvar = new GlobalVariable(
                     *this->Module, detail::type2type(var->Type,this->TheContext), false,
                     GlobalVariable::LinkageTypes::CommonLinkage, nullptr,
                     var->Name);
+                if (detail::sharedIsa<identifierAST>(var->Val)) {
+                    if(auto rawID = detail::sharedCast<identifierAST>(var->Val)){
+                        constant = this->Module->getGlobalVariable(rawID->Ident);
+                        gvar->setInitializer(constant);
+                        return constant;
+                    }
+                }else if (detail::sharedIsa<numberAST>(var->Val)) {
+                        gvar->setInitializer(constant);
+                        return constant;
+                }
                 gvar->setInitializer(constant);
                 Value* value = this->GeneratorGlobalValue(var->Val, var->Type);
                 return this->Builder->CreateStore(value, gvar);
@@ -194,10 +210,20 @@ namespace otter {
             if (detail::sharedIsa<funcCallAST>(stmt)) {
                 return generateCallFunc(stmt);
             } else if (detail::sharedIsa<identifierAST>(stmt)) {
-                throw std::string("id");
+                auto vTable = func->getValueSymbolTable();
+                auto gvTable = this->Module->getValueSymbolTable();
+                if(auto rawID = detail::sharedCast<identifierAST>(stmt)){
+                    if(auto id = vTable->lookup(rawID->Ident)){
+                        return id;
+                    }else if(auto id = gvTable.lookup(rawID->Ident)){
+                        return id;
+                    }else{
+                        throw std::string(rawID->Ident + " was not declar");
+                    }
+                }
             } else if (detail::sharedIsa<variableAST>(stmt)) {
                 return generateVariable(
-                    detail::shared4Shared<variableAST>(stmt));
+                    detail::shared4Shared<variableAST>(stmt),func->getValueSymbolTable());
             } else if (detail::sharedIsa<binaryExprAST>(stmt)) {
                 TypeID type;
                 if (llvm::Type::getDoubleTy(this->TheContext) ==
@@ -207,9 +233,8 @@ namespace otter {
                            func->getReturnType()) {
                     type = TypeID::Int;
                 }
-                auto value = this->GeneratorGlobalValue(stmt, type);
-                return Builder->CreateAlloca(func->getReturnType(), value,
-                                             "ret");
+                auto value = this->GeneratorGlobalValue(stmt, type,func->getValueSymbolTable());
+                return value;
             } else if (detail::sharedIsa<numberAST>(stmt)) {
                 if(auto rawNum = detail::sharedCast<numberAST>(stmt)){
                 if (llvm::Type::getDoubleTy(this->TheContext) ==
@@ -227,23 +252,33 @@ namespace otter {
             }
         }
 
-        Value* Generator::generateVariable(std::shared_ptr<variableAST> var) {
+        Value* Generator::generateVariable(std::shared_ptr<variableAST> var,auto vTable) {
             if (detail::sharedIsa<functionAST>(var->Val)) {
                 return this->GeneratorFunction(var);
             } else if (detail::sharedIsa<stringAST>(var->Val)) {
                 if (TypeID::String == var->Type) {
                     return this->generateString(var);
                 }
-            } else if (detail::sharedIsa<identifierAST>(var->Val)) {
-                std::cout << "id" << std::endl;
-            } else if (detail::sharedIsa<binaryExprAST>(var->Val)) {
-                std::cout << "expr" << std::endl;
-            } else if (detail::sharedIsa<numberAST>(var->Val)) {
-                std::cout << "number" << std::endl;
             }
-        }
 
-        llvm::Value* generateValue(std::shared_ptr<baseAST>){
+            Value* constant;
+            if (detail::sharedIsa<identifierAST>(var->Val)) {
+                if(auto rawID = detail::sharedCast<identifierAST>(var->Val)){
+                    if(auto id = vTable->lookup(rawID->Ident)){
+                        constant = id;
+                    }else if(auto id = this->Module->getValueSymbolTable().lookup(rawID->Ident)){
+                        constant = id;
+                    }else{
+                        throw std::string(rawID->Ident + " was not declar");
+                    }
+                }
+            } else if (detail::sharedIsa<binaryExprAST>(var->Val)) {
+                constant = GeneratorGlobalValue(var->Val,var->Type,vTable);
+            } else if (detail::sharedIsa<numberAST>(var->Val)) {
+                constant = detail::constantGet(std::move(var->Val), var->Type,
+                                           this->TheContext);
+            }
+            return this->Builder->CreateAlloca(detail::type2type(var->Type,this->TheContext),constant, var->Name);
         }
 
         Value* Generator::generateString(std::shared_ptr<variableAST> var) {
@@ -252,24 +287,24 @@ namespace otter {
                     ArrayType::get(IntegerType::get(this->TheContext, 8),
                                    (rawStr->Str).length() + 2);
                 auto Name = var->Name;
-                auto var  = Builder->CreateAlloca(Type, 0, Name);
-
                 Constant* strCons = ConstantDataArray::getString(
                     this->TheContext, rawStr->Str + "\n");
-
-                Builder->CreateStore(strCons, var);
-                return var;
+                return this->Builder->CreateAlloca(Type, strCons, Name);
             }
         }
 
-        Value* Generator::GeneratorValue(std::shared_ptr<baseAST> var,
-                                         TypeID type) {
-                                         }
         Value* Generator::GeneratorGlobalValue(std::shared_ptr<baseAST> var,
-                                         TypeID type) {
+                                         TypeID type, llvm::ValueSymbolTable* vTable) {
             if (auto rawVal = detail::sharedCast<identifierAST>(var)) {
-                return this->Builder->CreateLoad(
-                    this->Module->getGlobalVariable(rawVal->Ident), "");
+                if(vTable != nullptr){
+                    if(auto id = vTable->lookup(rawVal->Ident)){
+                        return this->Builder->CreateLoad(id, "");
+                    }
+                }
+                if(auto id = this->Module->getValueSymbolTable().lookup(rawVal->Ident)){
+                    return this->Builder->CreateLoad(id, "");
+                }
+                throw std::string(rawVal->Ident + "was not declar");
             } else if (detail::sharedIsa<numberAST>(var)) {
                 return detail::constantGet(std::move(var), type,
                                            this->TheContext);
@@ -278,46 +313,46 @@ namespace otter {
                     if (rawVal->Op == "+") {
                         if (type == TypeID::Int) {
                             return this->Builder->CreateAdd(
-                                GeneratorGlobalValue(rawVal->Lhs, type),
-                                GeneratorGlobalValue(rawVal->Rhs, type));
+                                GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable)),
+                                GeneratorGlobalValue(rawVal->Rhs, type,std::move(vTable)));
                         } else {
                             return this->Builder->CreateFAdd(
-                                GeneratorGlobalValue(rawVal->Lhs, type),
-                                GeneratorGlobalValue(rawVal->Rhs, type));
+                                GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable)),
+                                GeneratorGlobalValue(rawVal->Rhs, type,std::move(vTable)));
                         }
                     } else if (rawVal->Op == "-") {
                         if (type == TypeID::Int) {
                             return this->Builder->CreateSub(
-                                GeneratorGlobalValue(rawVal->Lhs, type),
-                                GeneratorGlobalValue(rawVal->Rhs, type));
+                                GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable)),
+                                GeneratorGlobalValue(rawVal->Rhs, type,std::move(vTable)));
                         } else {
                             return this->Builder->CreateFSub(
-                                GeneratorGlobalValue(rawVal->Lhs, type),
-                                GeneratorGlobalValue(rawVal->Rhs, type));
+                                GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable)),
+                                GeneratorGlobalValue(rawVal->Rhs, type,std::move(vTable)));
                         }
                     } else if (rawVal->Op == "*") {
                         if (type == TypeID::Int) {
                             return this->Builder->CreateMul(
-                                GeneratorGlobalValue(rawVal->Lhs, type),
-                                GeneratorGlobalValue(rawVal->Rhs, type));
+                                GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable)),
+                                GeneratorGlobalValue(rawVal->Rhs, type,std::move(vTable)));
                         } else {
                             return this->Builder->CreateFMul(
-                                GeneratorGlobalValue(rawVal->Lhs, type),
-                                GeneratorGlobalValue(rawVal->Rhs, type));
+                                GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable)),
+                                GeneratorGlobalValue(rawVal->Rhs, type,std::move(vTable)));
                         }
                     } else if (rawVal->Op == "/") {
                         if (type == TypeID::Int) {
                             return this->Builder->CreateSDiv(
-                                GeneratorGlobalValue(rawVal->Lhs, type),
-                                GeneratorGlobalValue(rawVal->Rhs, type));
+                                GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable)),
+                                GeneratorGlobalValue(rawVal->Rhs, type,std::move(vTable)));
                         } else {
                             return this->Builder->CreateFDiv(
-                                GeneratorGlobalValue(rawVal->Lhs, type),
-                                GeneratorGlobalValue(rawVal->Rhs, type));
+                                GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable)),
+                                GeneratorGlobalValue(rawVal->Rhs, type,std::move(vTable)));
                         }
                     }
                 } else if (rawVal->Lhs) {
-                    return GeneratorGlobalValue(rawVal->Lhs, type);
+                    return GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable));
                 } else {
                     return nullptr;
                 }
