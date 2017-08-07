@@ -148,7 +148,8 @@ namespace otter {
             std::vector<TypeID> Types;
             std::vector<std::shared_ptr<baseAST>> Statements;
 
-            functionAST(auto&& null) : baseAST(AstID::FunctionID){};
+            functionAST(auto& null = nullptr) : baseAST(AstID::FunctionID){
+            };
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::FunctionID;
             }

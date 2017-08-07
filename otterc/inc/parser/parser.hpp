@@ -76,7 +76,7 @@ namespace otter {
                                  notExpr[detail::addAST("rhs")]));
 
         auto const function_def =
-            x3::lit("[](")[detail::sharedAssign<functionAST>()] >>
+            x3::string("[](")[detail::sharedAssign<functionAST>()] >>
             *(id[detail::sharedAdd()] >> type[detail::sharedAdd()]) >>
             x3::lit(')') >>
             *(builtIn[detail::addAST()] | funcCall[detail::addAST()] |

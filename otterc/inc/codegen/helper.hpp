@@ -29,7 +29,14 @@ namespace otter {
                                        ast::TypeID type,
                                        auto& context) -> llvm::Value* {
                 if (auto rawVal = sharedCast<ast::numberAST>(ast)) {
-                    if (type == ast::TypeID::Int) {
+                    if(rawVal->Type != type){
+                        if (rawVal->Type == ast::TypeID::Int) {
+                            throw std::string("invalid conversion from 'Int' to 'Double'");
+                        }else{
+                            throw std::string("invalid conversion from 'Double' to 'Int'");
+                        }
+                    }
+                    if (rawVal->Type == ast::TypeID::Int) {
                         auto valueType = llvm::Type::getInt32Ty(context);
                         return llvm::ConstantInt::getSigned(valueType,
                                                             rawVal->Val);

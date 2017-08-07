@@ -56,14 +56,21 @@ int main(int argc, char** argv) {
                                      raw_stream);
             raw_stream.close();
         } else {
-            std::cout << *first << std::endl;
             /* ToDo
              *  error handring
              *  */
-            throw std::string("syntax error");
+            std::string error = "\x1b[31m";
+            for(;*first != '\n';first++){
+                error += *first;
+            }
+            error += "\x1b[0m";
+            throw std::string("syntax error :\n\t" + error);
         }
     } catch (const std::string& e) {
-        std::cerr << "error: " << e << std::endl;
+        std::cerr << "\x1b[31m";
+        std::cerr << "error: ";
+        std::cerr << "\x1b[0m";
+        std::cerr <<  e << std::endl;
     }
     return 0;
 }

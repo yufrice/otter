@@ -28,11 +28,12 @@ namespace otter {
                 std::shared_ptr<variableAST>);
             llvm::Value* generateVariable(std::shared_ptr<variableAST>,auto);
             llvm::Value* generateString(std::shared_ptr<variableAST>);
-            llvm::CallInst* generateCallFunc(std::shared_ptr<baseAST>);
+            llvm::CallInst* generateCallFunc(const std::shared_ptr<baseAST>&, const llvm::ValueSymbolTable* vTable = new llvm::ValueSymbolTable());
+            llvm::CallInst* generatePrint(const std::shared_ptr<baseAST>&, const llvm::ValueSymbolTable* vTable);
             llvm::Function* GeneratorFunction(std::shared_ptr<variableAST>);
             llvm::Value* GeneratorStatement(std::shared_ptr<baseAST>,
                                             llvm::Function*);
-            llvm::Value* GeneratorGlobalValue(std::shared_ptr<baseAST>, TypeID,llvm::ValueSymbolTable* vTable = nullptr);
+            llvm::Value* GeneratorGlobalValue(std::shared_ptr<baseAST>, TypeID,llvm::ValueSymbolTable* vTable = new llvm::ValueSymbolTable());
         };
     }  // namespace codegen
 }  // namespace otter
