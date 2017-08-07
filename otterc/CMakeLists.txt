@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.7)
 
 set(CMAKE_CXX_COMPILER "g++")
-set(CMAKE_CXX_FLAGS "-std=c++1z -Wall -O2")
+set(CMAKE_CXX_FLAGS "-std=c++1z")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 find_package(LLVM REQUIRED CONFIG)
 INCLUDE_DIRECTORIES(${LLVM_INCLUDE_DIRS})

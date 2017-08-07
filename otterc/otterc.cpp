@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
         auto first   = src.begin();
         auto succces = x3::phrase_parse(first, src.end(), parser::module,
                                         parser::skkiper, result);
-        if (succces && first == src.end()) {
+        if (result && succces && first == src.end()) {
             // pre check
             semantics::preCheck pck(result);
             pck.check();
@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
              *  error handring
              *  */
             std::string error = "\x1b[31m";
-            for(;*first != '\n';first++){
+            for (; *first != '\n'; first++) {
                 error += *first;
             }
             error += "\x1b[0m";
@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
         std::cerr << "\x1b[31m";
         std::cerr << "error: ";
         std::cerr << "\x1b[0m";
-        std::cerr <<  e << std::endl;
+        std::cerr << e << std::endl;
     }
     return 0;
 }
