@@ -191,27 +191,17 @@ namespace otter {
         struct moduleAST : public baseAST {
             std::vector<std::shared_ptr<variableAST>> Vars;
             std::vector<std::shared_ptr<funcCallAST>> Funcs;
+            std::vector<std::shared_ptr<baseAST>> Stmt;
 
             moduleAST() : baseAST(AstID::ModuleID){};
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::ModuleID;
             }
 
-            void addAst(const auto& ast, auto& type) {
-                if (std::is_convertible<decltype(ast),
-                                        std::shared_ptr<variableAST>>::value ==
-                    true) {
-                    Vars.push_back(std::move(ast));
-                }
+            void addAst(const auto& ast) {
+                Stmt.emplace_back(ast);
             }
 
-            void addAst(const auto& ast) {
-                if (std::is_convertible<decltype(ast),
-                                        std::shared_ptr<funcCallAST>>::value ==
-                    true) {
-                    Funcs.push_back(std::move(ast));
-                }
-            }
             auto getFuncs() -> std::vector<std::shared_ptr<funcCallAST>>& {
                 return this->Funcs;
             }

@@ -113,9 +113,8 @@ namespace otter {
             x3::lit('(') >> addExpr[detail::addAST()] >> x3::lit(')');
 
         auto const module_def =
-            *(variable[detail::addAST(typeid(variableAST))] |
-              builtIn[detail::addAST()] |
-              funcCall[detail::addAST()]);
+            *(variable[detail::addAST()] |
+              builtIn[detail::addAST()]);
 
         auto const skkiper =
             x3::space | x3::standard_wide::space |
