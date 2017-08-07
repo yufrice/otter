@@ -17,27 +17,42 @@ namespace otter {
             delete this->Module;
         }
 
+
+       llvm::Instruction* Generator::addModuleInst(llvm::Instruction* inst){
+            auto retEnd = --(this->Entry->end());
+            this->Entry->getInstList().insert(retEnd, inst);
+            return inst;
+       }
+
         Module* Generator::generatorModule(std::shared_ptr<moduleAST> mod) {
             FunctionType* funcType = FunctionType::get(
                 llvm::Type::getVoidTy(this->TheContext), false);
             Function* mainFunc = Function::Create(
                 funcType, Function::ExternalLinkage, "main", this->Module);
 
-            BasicBlock* entry =
+            this->Entry =
                 BasicBlock::Create(this->TheContext, "entry", mainFunc);
-            Builder->SetInsertPoint(entry);
+            Builder->SetInsertPoint(this->Entry);
+            Builder->CreateRetVoid();
+            auto retEnd = --(this->Entry->end());
 
             for (auto stmt: mod->Stmt) {
                 if(detail::sharedIsa<variableAST>(stmt)){
                     if(auto rawVar = detail::shared4Shared<variableAST>(stmt)){
-                        if (!generateGlovalVariable(rawVar)) {
+                        if (auto inst = generateGlovalVariable(rawVar)) {
+                            if(isa<StoreInst>(inst)){
+                                if(auto storeInst = dyn_cast<StoreInst>(inst)){
+                                    this->Entry->getInstList().insert(retEnd, storeInst);
+                                }
+                            }
+                        }else {
                             throw std::string("type error");
                         }
                     }
                 }else if(detail::sharedIsa<funcCallAST>(stmt)){
                     if(auto rawCall = detail::shared4Shared<funcCallAST>(stmt)){
                         if (auto inst = (generateCallFunc(rawCall))) {
-                            entry->getInstList().insert(entry->end(), inst);
+                            this->Entry->getInstList().insert(retEnd, inst);
                         } else {
                             throw std::string("type error");
                         }
@@ -45,23 +60,8 @@ namespace otter {
                 }
             }
 
-            auto retVoid = ReturnInst::Create(this->TheContext);
-            entry->getInstList().insert(entry->end(), retVoid);
-
-            // test code
-            // auto args = PointerType::get(Type::getInt8Ty(this->TheContext),
-            // 0);
-            // llvm::Value* msg        = Builder->CreateGlobalStringPtr("%d\n");
-            // FunctionType* func_type = FunctionType::get(
-            //     Type::getInt32Ty(this->TheContext), args, true);
-            // Function* F = dyn_cast<Function>(
-            //     this->Module->getOrInsertFunction("printf", func_type));
-            // std::vector<llvm::Value*> ar;
-            // ar.push_back(msg);
-            // auto a = this->Builder->CreateLoad(
-            //     (this->Module->getGlobalVariable("b")));
-            // ar.push_back(a);
-            // this->Builder->CreateCall(F, ar);
+            //auto retVoid = ReturnInst::Create(this->TheContext);
+            //entry->getInstList().insert(entry->end(), retVoid);
 
             Module->dump();
             return this->Module;
@@ -108,7 +108,7 @@ namespace otter {
                 }
                 gvar->setInitializer(constant);
                 Value* value = this->GeneratorGlobalValue(var->Val, var->Type);
-                return this->Builder->CreateStore(value, gvar);
+                return new StoreInst(value, gvar);
             }
         }
 
@@ -148,6 +148,8 @@ namespace otter {
             if (auto rawCall = detail::sharedCast<funcCallAST>(expr)) {
                     if(rawCall->Args.size() != 1){
                         throw std::string("too many arguments to function print(any)");
+                    }else if(rawCall->Args.size() == 0){
+                        throw std::string("too few arguments to function print(any)");
                     }
 
                     if(auto args = rawCall->Args.at(0)){
@@ -167,22 +169,12 @@ namespace otter {
                                 }
                             }
                         }
-                        llvm::Type* argsType;
                         std::string mangling;
-                        if(type->getPointerElementType()->getTypeID() == 14){
-                            argsType = PointerType::get(Type::getInt8Ty(this->TheContext),0);
-                            mangling = "puts";
-                        }else if(type->getPointerElementType()->getTypeID() == 11){
-                            argsType = Type::getInt32Ty(this->TheContext);
-                            mangling = "iprint";
-                        }else if(type->getPointerElementType()->getTypeID() == 3){
-                            argsType = Type::getDoubleTy(this->TheContext);
-                            mangling = "dprint";
-                        }
+                        llvm::Type* argsType = detail::stdOutType(type,this->TheContext,mangling);
                         FunctionType* func_type = FunctionType::get(Type::getInt32Ty(this->TheContext), argsType, false);
                         Function* func = dyn_cast<Function>(this->Module->getOrInsertFunction(mangling, func_type));
-
-                        return this->Builder->CreateCall(func, this->Builder->CreateLoad(val));
+                        auto loadInst = dyn_cast<LoadInst>(addModuleInst(new LoadInst(val)));
+                        return CallInst::Create(func, loadInst);
                     }
 
                 }

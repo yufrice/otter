@@ -64,6 +64,21 @@ namespace otter {
                 }
             }
 
+            decltype(auto) stdOutType(llvm::Type* Type, auto& context,std::string& mangling)
+                -> llvm::Type*{
+                if(Type->getPointerElementType()->getTypeID() == 14){
+                    mangling = "puts";
+                    return llvm::PointerType::get(llvm::Type::getInt8Ty(context),0);
+                }else if(Type->getPointerElementType()->getTypeID() == 11){
+                    mangling = "iprint";
+                    return  llvm::Type::getInt32Ty(context);
+                }else if(Type->getPointerElementType()->getTypeID() == 3){
+                    mangling = "dprint";
+                    return  llvm::Type::getDoubleTy(context);
+                }else if(Type->getPointerElementType()->getTypeID() == 12){
+                }
+            }
+
         }  // name space detail
     }      // namespace codegen
 }  // namespace otter

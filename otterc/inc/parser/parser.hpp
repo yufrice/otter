@@ -24,8 +24,6 @@ namespace otter {
 
         x3::rule<class funcCall, std::shared_ptr<funcCallAST>> const funcCall(
             "funcCall");
-        x3::rule<class builtIn, std::shared_ptr<funcCallAST>> const builtIn(
-            "builtIn");
         x3::rule<class lambda, std::shared_ptr<functionAST>> const lambda(
             "lambda");
 
@@ -79,7 +77,7 @@ namespace otter {
             x3::string("[](")[detail::sharedAssign<functionAST>()] >>
             *(id[detail::sharedAdd()] >> type[detail::sharedAdd()]) >>
             x3::lit(')') >>
-            *(builtIn[detail::addAST()] | funcCall[detail::addAST()] |
+            *(funcCall[detail::addAST()] |
               variable[detail::addAST()]) >>
             ((addExpr[detail::addAST()] |
               string[detail::addAST<stringAST>()]) >>
@@ -108,13 +106,9 @@ namespace otter {
                                   x3::lit('(') >>
                                   *(addExpr[detail::addAST()]) >> x3::lit(')');
 
-        auto const builtIn_def =
-            x3::string("print")[detail::sharedAssign<funcCallAST>()] >>
-            x3::lit('(') >> addExpr[detail::addAST()] >> x3::lit(')');
-
         auto const module_def =
             *(variable[detail::addAST()] |
-              builtIn[detail::addAST()]);
+              funcCall[detail::addAST()]);
 
         auto const skkiper =
             x3::space | x3::standard_wide::space |
@@ -124,7 +118,6 @@ namespace otter {
                             string,
                             type,
                             funcCall,
-                            builtIn,
                             expr,
                             notExpr,
                             boolExpr,
