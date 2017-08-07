@@ -47,9 +47,10 @@ namespace otter {
         auto const id_def =
             x3::lexeme[((x3::alpha | '_') >> *(x3::alnum | '_'))];
 
+        static x3::real_parser<double, x3::strict_real_policies<double>> const strict_double;
         auto const number_def = id[detail::sharedAssign<identifierAST>()] |
-                                x3::double_[detail::sharedAssign<numberAST>()] |
-                                x3::int_[detail::sharedAssign<numberAST>()] |
+                                strict_double[detail::sharedAssign<numberAST>(TypeID::Double)] |
+                                x3::int_[detail::sharedAssign<numberAST>(TypeID::Int)] |
                                 '(' >> addExpr[detail::assign()] >> ')';
         auto const mulExpr_def =
             number[detail::assign()] >>
@@ -75,7 +76,7 @@ namespace otter {
                                  notExpr[detail::addAST("rhs")]));
 
         auto const function_def =
-            x3::lit("[](")[detail::sharedAssign<functionAST>(nullptr)] >>
+            x3::lit("[](")[detail::sharedAssign<functionAST>()] >>
             *(id[detail::sharedAdd()] >> type[detail::sharedAdd()]) >>
             x3::lit(')') >>
             *(builtIn[detail::addAST()] | funcCall[detail::addAST()] |
@@ -102,7 +103,6 @@ namespace otter {
                                    addExpr[detail::addAST()] |
                                    function[detail::addAST()]);
 
-        // auto const statement_def = variable[detail::assign()];
 
         auto const funcCall_def = id[detail::sharedAssign<funcCallAST>()] >>
                                   x3::lit('(') >>

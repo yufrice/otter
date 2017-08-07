@@ -28,10 +28,11 @@ namespace otter {
 
             template <typename T>
             decltype(auto) sharedAssign(auto&& arg) {
-                return [&arg](auto& ctx) {
-                    x3::_val(ctx) = std::move(std::make_shared<T>(arg));
+                return [=](auto& ctx) {
+                    x3::_val(ctx) = std::move(std::make_shared<T>(x3::_attr(ctx),arg));
                 };
             }
+
 
             template <typename T>
             decltype(auto) makeBinaryExpr(auto&& op){

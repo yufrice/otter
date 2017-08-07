@@ -5,6 +5,7 @@
 #include <vector>
 #include <type_traits>
 #include <memory>
+#include <variant>
 #include <iostream>
 
 namespace otter {
@@ -63,8 +64,9 @@ namespace otter {
 
         struct numberAST : public baseAST {
             double Val;
+            TypeID Type;
 
-            numberAST(double val) : baseAST(AstID::NumberID), Val(val){};
+            numberAST(double val,TypeID type) : baseAST(AstID::NumberID), Val(val),Type(type){};
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::NumberID;
             }
@@ -146,7 +148,7 @@ namespace otter {
             std::vector<TypeID> Types;
             std::vector<std::shared_ptr<baseAST>> Statements;
 
-            functionAST(decltype(nullptr) nl) : baseAST(AstID::FunctionID){};
+            functionAST(auto&& null) : baseAST(AstID::FunctionID){};
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::FunctionID;
             }
