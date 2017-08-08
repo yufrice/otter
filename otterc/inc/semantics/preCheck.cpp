@@ -7,19 +7,24 @@ namespace otter {
             this->checkType();
         }
         void preCheck::checkOverLap() {
-            for (auto var : this->Module->Vars) {
-                this->checkIdAssign(var->Val);
-                auto ptr = var->Val.get();
-                if (nameQueue.end() !=
-                    std::find(nameQueue.begin(), nameQueue.end(), var->Name)) {
-                    throw std::string("redeclaration of " + var->Name);
-                } else {
-                    nameQueue.emplace_back(var->Name);
+            for (auto stmt : this->Module->Stmt) {
+                if(auto var = std::dynamic_pointer_cast<ast::variableAST>(stmt)){
+
+                    this->checkIdAssign(var->Val);
+                    auto ptr = var->Val.get();
+                    if (nameQueue.end() !=
+                        std::find(nameQueue.begin(), nameQueue.end(), var->Name)) {
+                            throw std::string("redeclaration of " + var->Name);
+                    } else {
+                        nameQueue.emplace_back(var->Name);
+                    }
                 }
             }
         }
         void preCheck::checkType() {
-            for (auto var : this->Module->Vars) {
+            for (auto stmt: this->Module->Stmt) {
+                if(auto var = std::dynamic_pointer_cast<ast::variableAST>(stmt)){
+
                 auto ptr = var->Val.get();
                 if (auto rawPtr = dynamic_cast<ast::stringAST*>(ptr)) {
                     if (var->Type != ast::TypeID::String) {
@@ -44,6 +49,7 @@ namespace otter {
                         (var->Type != ast::TypeID::Int)) {
                         throw std::string(
                             "invalid conversion from 'Digit' to " + var->Name);
+                }
                     }
                 }
             }

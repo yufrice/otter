@@ -189,8 +189,6 @@ namespace otter {
         };
 
         struct moduleAST : public baseAST {
-            std::vector<std::shared_ptr<variableAST>> Vars;
-            std::vector<std::shared_ptr<funcCallAST>> Funcs;
             std::vector<std::shared_ptr<baseAST>> Stmt;
 
             moduleAST() : baseAST(AstID::ModuleID){};
@@ -200,14 +198,6 @@ namespace otter {
 
             void addAst(const auto& ast) {
                 Stmt.emplace_back(ast);
-            }
-
-            auto getFuncs() -> std::vector<std::shared_ptr<funcCallAST>>& {
-                return this->Funcs;
-            }
-
-            auto getVars() -> std::vector<std::shared_ptr<variableAST>>& {
-                return this->Vars;
             }
         };
 

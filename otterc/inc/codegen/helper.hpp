@@ -64,7 +64,7 @@ namespace otter {
                 }
             }
 
-            decltype(auto) stdOutType(llvm::Type* Type)
+            decltype(auto) stdOutType(llvm::Type*& Type)
                 -> std::string{
                 if(Type->getPointerElementType()->getTypeID() == 14){
                     return "%s\n";
@@ -73,6 +73,7 @@ namespace otter {
                 }else if(Type->getPointerElementType()->getTypeID() == 3){
                     return "%lf\n";
                 }else if(Type->getPointerElementType()->getTypeID() == 12){
+                    return "%lf\n";
                 }
             }
 
