@@ -117,14 +117,14 @@ namespace otter {
             if (auto rawStr = detail::sharedCast<stringAST>(var->Val)) {
                 ArrayType* Type =
                     ArrayType::get(IntegerType::get(this->TheContext, 8),
-                                   (rawStr->Str).length() + 2);
+                                   (rawStr->Str).length() + 1);
                 auto Name = var->Name;
                 GlobalVariable* gvar =
                     new GlobalVariable(*this->Module, Type, true,
-                                       GlobalValue::CommonLinkage, 0, Name);
+                                       GlobalValue::PrivateLinkage, 0, Name);
 
                 Constant* strCons = ConstantDataArray::getString(
-                    this->TheContext, rawStr->Str + "\n");
+                    this->TheContext, rawStr->Str);
 
                 gvar->setInitializer(strCons);
                 return gvar;
@@ -169,12 +169,17 @@ namespace otter {
                                 }
                             }
                         }
-                        std::string mangling;
-                        llvm::Type* argsType = detail::stdOutType(type,this->TheContext,mangling);
-                        FunctionType* func_type = FunctionType::get(Type::getInt32Ty(this->TheContext), argsType, false);
-                        Function* func = dyn_cast<Function>(this->Module->getOrInsertFunction(mangling, func_type));
-                        auto loadInst = dyn_cast<LoadInst>(addModuleInst(new LoadInst(val)));
-                        return CallInst::Create(func, loadInst);
+                        std::string format = detail::stdOutType(type);
+                        FunctionType* func_type = FunctionType::get(Type::getInt32Ty(this->TheContext), PointerType::get(llvm::Type::getInt8Ty(this->TheContext),0), true);
+                        Function* func = dyn_cast<Function>(this->Module->getOrInsertFunction("printf", func_type));
+                        std::vector<Value*> argValue(1,Builder->CreateGlobalStringPtr(format));
+                        if(type->getPointerElementType()->getTypeID() == 14){
+                            argValue.push_back(val);
+                        }else{
+                            auto loadInst = dyn_cast<LoadInst>(addModuleInst(new LoadInst(val)));
+                            argValue.push_back(loadInst);
+                        }
+                        return CallInst::Create(func, argValue);
                     }
 
                 }

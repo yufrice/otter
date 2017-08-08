@@ -64,17 +64,14 @@ namespace otter {
                 }
             }
 
-            decltype(auto) stdOutType(llvm::Type* Type, auto& context,std::string& mangling)
-                -> llvm::Type*{
+            decltype(auto) stdOutType(llvm::Type* Type)
+                -> std::string{
                 if(Type->getPointerElementType()->getTypeID() == 14){
-                    mangling = "puts";
-                    return llvm::PointerType::get(llvm::Type::getInt8Ty(context),0);
+                    return "%s\n";
                 }else if(Type->getPointerElementType()->getTypeID() == 11){
-                    mangling = "iprint";
-                    return  llvm::Type::getInt32Ty(context);
+                    return "%d\n";
                 }else if(Type->getPointerElementType()->getTypeID() == 3){
-                    mangling = "dprint";
-                    return  llvm::Type::getDoubleTy(context);
+                    return "%lf\n";
                 }else if(Type->getPointerElementType()->getTypeID() == 12){
                 }
             }
