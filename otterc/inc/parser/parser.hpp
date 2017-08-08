@@ -104,7 +104,7 @@ namespace otter {
 
         auto const funcCall_def = id[detail::sharedAssign<funcCallAST>()] >>
                                   x3::lit('(') >>
-                                  *(addExpr[detail::addAST()]) >> x3::lit(')');
+                                  *(addExpr[detail::addAST()] | string[detail::addAST<stringAST>()]) >> x3::lit(')');
 
         auto const module_def =
             *(variable[detail::addAST()] |

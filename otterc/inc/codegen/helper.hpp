@@ -64,18 +64,16 @@ namespace otter {
                 }
             }
 
-            decltype(auto) stdOutType(llvm::Type*& Type)
-                -> std::string{
-                if(Type->getPointerElementType()->getTypeID() == 14){
-                    return "%s\n";
-                }else if(Type->getPointerElementType()->getTypeID() == 11){
-                    return "%d\n";
-                }else if(Type->getPointerElementType()->getTypeID() == 3){
-                    return "%lf\n";
-                }else if(Type->getPointerElementType()->getTypeID() == 12){
-                    return "%lf\n";
-                }
-            }
+            decltype(auto) stdOutType = [](llvm::Type*& Type,std::string& format){
+                    if(Type->getPointerElementType()->getTypeID() == 14){
+                        format = "%s\n";
+                    }else if(Type->getPointerElementType()->getTypeID() == 11){
+                        format = "%d\n";
+                    }else if(Type->getPointerElementType()->getTypeID() == 3){
+                        format = "%lf\n";
+                    }else if(Type->getPointerElementType()->getTypeID() == 12){
+                    }
+            };
 
         }  // name space detail
     }      // namespace codegen

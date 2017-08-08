@@ -131,11 +131,11 @@ namespace otter {
             }
         }
 
-        CallInst* Generator::generateCallFunc(const std::shared_ptr<baseAST> &expr,const ValueSymbolTable* vTable) {
+        CallInst* Generator::generateCallFunc(const std::shared_ptr<baseAST> &expr,const Function* func) {
             std::vector<llvm::Value*> args;
             if (auto rawCall = detail::sharedCast<funcCallAST>(expr)) {
                 if (rawCall->Name == "print") {
-                    return generatePrint(expr,vTable);
+                    return generatePrint(expr,func);
                 } else {
                     return CallInst::Create(
                         this->Module->getFunction(rawCall->Name), args,
@@ -144,7 +144,7 @@ namespace otter {
             }
         }
 
-        CallInst* Generator::generatePrint(const std::shared_ptr<baseAST> &expr,const ValueSymbolTable* vTable) {
+        CallInst* Generator::generatePrint(const std::shared_ptr<baseAST> &expr,const Function* func) {
             if (auto rawCall = detail::sharedCast<funcCallAST>(expr)) {
                     if(rawCall->Args.size() != 1){
                         throw std::string("too many arguments to function print(any)");
@@ -152,26 +152,50 @@ namespace otter {
                         throw std::string("too few arguments to function print(any)");
                     }
 
+                    Value* val = nullptr;
+                    llvm::Type* type;
+                    std::string format;
+                    FunctionType* func_type = FunctionType::get(Type::getInt32Ty(this->TheContext), PointerType::get(llvm::Type::getInt8Ty(this->TheContext),0), true);
+                    Function* pFunc = dyn_cast<Function>(this->Module->getOrInsertFunction("printf", func_type));
                     if(auto args = rawCall->Args.at(0)){
-                        Value* val;
-                        llvm::Type* type;
                         if(detail::sharedIsa<identifierAST>(args)){
                             if(auto rawID = detail::sharedCast<identifierAST>(args)){
                                 auto gvTable = this->Module->getValueSymbolTable();
-                                if(auto id = vTable->lookup(rawID->Ident)){
+                                if(auto id = gvTable.lookup(rawID->Ident)){
                                     val = id;
                                     type = val->getType();
-                                }else if(auto id = gvTable.lookup(rawID->Ident)){
-                                    val = id;
-                                    type = val->getType();
-                                }else{
+                                }
+                                if(func != nullptr){
+                                    auto vTable = func->getValueSymbolTable();
+                                    if(auto id = vTable->lookup(rawID->Ident)){
+                                        val = id;
+                                        type = val->getType();
+                                    }
+                                }
+                                if(val == nullptr){
                                     throw std::string(rawID->Ident + " was not declar");
                                 }
+                                detail::stdOutType(type,format);
+                            }
+                        }else if(detail::sharedIsa<stringAST>(args)){
+                            if(auto rawStr = detail::sharedCast<stringAST>(args)){
+                                ArrayType* Type =
+                                    ArrayType::get(IntegerType::get(this->TheContext, 8),
+                                        (rawStr->Str).length() + 2);
+                               Constant* strCons = ConstantDataArray::getString(
+                                    this->TheContext, rawStr->Str);
+                                    AllocaInst* allocaInst;
+                                    if(func != nullptr){
+                                        allocaInst = dyn_cast<AllocaInst>(addModuleInst (new AllocaInst(Type, strCons)));
+                                    }else{
+                                        allocaInst = dyn_cast<AllocaInst>(addModuleInst (new AllocaInst(Type, strCons)));
+                                    }
+                                format = "%s\n";
+                                std::vector<Value*> argValue(1,Builder->CreateGlobalStringPtr(format));
+                                argValue.push_back(allocaInst);
+                                return CallInst::Create(pFunc, argValue);
                             }
                         }
-                        std::string format = detail::stdOutType(type);
-                        FunctionType* func_type = FunctionType::get(Type::getInt32Ty(this->TheContext), PointerType::get(llvm::Type::getInt8Ty(this->TheContext),0), true);
-                        Function* func = dyn_cast<Function>(this->Module->getOrInsertFunction("printf", func_type));
                         std::vector<Value*> argValue(1,Builder->CreateGlobalStringPtr(format));
                         if(type->getPointerElementType()->getTypeID() == 14){
                             argValue.push_back(val);
@@ -179,7 +203,7 @@ namespace otter {
                             auto loadInst = dyn_cast<LoadInst>(addModuleInst(new LoadInst(val)));
                             argValue.push_back(loadInst);
                         }
-                        return CallInst::Create(func, argValue);
+                        return CallInst::Create(pFunc, argValue);
                     }
 
                 }
@@ -248,7 +272,7 @@ namespace otter {
         Value* Generator::GeneratorStatement(std::shared_ptr<baseAST> stmt,
                                              Function* func) {
             if (detail::sharedIsa<funcCallAST>(stmt)) {
-                return generateCallFunc(stmt,func->getValueSymbolTable());
+                return generateCallFunc(stmt,func);
             } else if (detail::sharedIsa<identifierAST>(stmt)) {
                 auto vTable = func->getValueSymbolTable();
                 auto gvTable = this->Module->getValueSymbolTable();
