@@ -2,25 +2,28 @@
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/raw_ostream.h>
 #include <experimental/filesystem>
-#include <boost/program_options.hpp>
+#include <llvm/Support/CommandLine.h>
 #include <iostream>
 #include <fstream>
 #include <memory>
 #include <vector>
 #include "otterc.hpp"
 
+
 int main(int argc, char** argv) {
     using namespace boost::spirit;
     using namespace otter;
     namespace fs = std::experimental::filesystem;
-    // namespace po = boost::program_options;
-    // po::options_description opt("Options");
-    // opt.add_options()("help,h", "help");
+
+    static llvm::cl::opt<std::string> InputFilename(llvm::cl::Positional, llvm::cl::desc("<input file>"));
+    static llvm::cl::opt<std::string> OutputFilename("o", llvm::cl::desc("Place the output into <file>."), llvm::cl::value_desc("file"), llvm::cl::init("a.ll"));
+    llvm::cl::ParseCommandLineOptions(argc, argv);
     try {
-        if (argc == 1) {
+        std::ostringstream Input(InputFilename.c_str());
+        if (!Input.good()) {
             throw std::string("No input files");
         }
-        fs::path srcPath = argv[1];
+        fs::path srcPath(Input.str());
         if (!fs::exists(srcPath)) {
             throw(srcPath.string() + ": No such file");
         }
@@ -48,7 +51,7 @@ int main(int argc, char** argv) {
             pck.check();
 
             std::error_code err;
-            std::string out = std::string(argv[1]) + ".ll";
+            std::string out(OutputFilename.c_str());
             llvm::raw_fd_ostream raw_stream(out, err,
                                             llvm::sys::fs::OpenFlags::F_RW);
             codegen::Generator gen;
