@@ -3,6 +3,5 @@
 
 #include <boost/fusion/include/adapt_struct.hpp>
 
-BOOST_FUSION_ADAPT_STRUCT(otter::ast::moduleAST, Vars, Funcs)
 
 #endif

@@ -20,6 +20,71 @@ namespace otter {
                 return llvm::dyn_cast<Type>(rawPtr(ptr));
             }
 
+            template <typename Type, typename T>
+            decltype(auto) shared4Shared(std::shared_ptr<T> ptr) {
+                return std::dynamic_pointer_cast<Type>(ptr);
+            }
+
+            decltype(auto) constantGet(std::shared_ptr<ast::baseAST> ast,
+                                       ast::TypeID type,
+                                       auto& context) -> llvm::Value* {
+                if (auto rawVal = sharedCast<ast::numberAST>(ast)) {
+                    if(rawVal->Type != type){
+                        if (rawVal->Type == ast::TypeID::Int) {
+                            throw std::string("invalid conversion from 'Int' to 'Double'");
+                        }else{
+                            throw std::string("invalid conversion from 'Double' to 'Int'");
+                        }
+                    }
+                    if (rawVal->Type == ast::TypeID::Int) {
+                        auto valueType = llvm::Type::getInt32Ty(context);
+                        return llvm::ConstantInt::getSigned(valueType,
+                                                            rawVal->Val);
+                    } else {
+                        auto valueType = llvm::Type::getDoubleTy(context);
+                        return llvm::ConstantFP::get(valueType, rawVal->Val);
+                    }
+                }
+            }
+
+            decltype(auto) type2type(ast::TypeID& type,auto& context) -> llvm::Type*{
+                if(type == ast::TypeID::Int){
+                    return llvm::Type::getInt32Ty(context);
+                }else if(type == ast::TypeID::Double){
+                    return llvm::Type::getDoubleTy(context);
+                }else if(type == ast::TypeID::String){
+                    return llvm::Type::getInt8Ty(context);
+                }
+            }
+            decltype(auto) type2type(llvm::Type*& type,auto& context){
+                if(type == llvm::Type::getInt32Ty(context)){
+                    return ast::TypeID::Int;
+                }else if(type == llvm::Type::getDoubleTy(context)){
+                    return ast::TypeID::Double;
+                }
+            }
+
+            decltype(auto) stdOutType = [](llvm::Type*& Type,std::string& format){
+                    if(Type->getPointerElementType()->getTypeID() == 14){
+                        format = "%s\n";
+                    }else if(Type->getPointerElementType()->getTypeID() == 11){
+                        format = "%d\n";
+                    }else if(Type->getPointerElementType()->getTypeID() == 3){
+                        format = "%lf\n";
+                    }else if(Type->getPointerElementType()->getTypeID() == 12){
+                    }
+            };
+
+            decltype(auto) formatNameMangling = [](const std::string& name){
+                if(name == "%s\n"){
+                    return "stringFormat";
+                }else if(name == "%d\n"){
+                    return "digitFormat";
+                }else if(name == "%lf\n"){
+                    return "realFormat";
+                }
+            };
+
         }  // name space detail
     }      // namespace codegen
 }  // namespace otter

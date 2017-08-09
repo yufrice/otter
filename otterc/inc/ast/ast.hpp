@@ -5,6 +5,7 @@
 #include <vector>
 #include <type_traits>
 #include <memory>
+#include <variant>
 #include <iostream>
 
 namespace otter {
@@ -63,8 +64,9 @@ namespace otter {
 
         struct numberAST : public baseAST {
             double Val;
+            TypeID Type;
 
-            numberAST(double val) : baseAST(AstID::NumberID), Val(val){};
+            numberAST(double val,TypeID type) : baseAST(AstID::NumberID), Val(val),Type(type){};
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::NumberID;
             }
@@ -77,32 +79,20 @@ namespace otter {
             std::shared_ptr<baseAST> Lhs;
             std::shared_ptr<baseAST> Rhs;
 
-            binaryExprAST(std::shared_ptr<baseAST>& ast)
-                : baseAST(AstID::BinExprID), Lhs(std::move(ast)) {}
+            binaryExprAST(std::shared_ptr<baseAST>& lhs,std::string op, std::shared_ptr<baseAST>& rhs)
+                : baseAST(AstID::BinExprID), Lhs(lhs),Rhs(rhs),Op(op) {}
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::BinExprID;
             }
-
-            void addAst(const auto& ast) { this->Rhs = std::move(ast); }
-
-            template <typename T>
-            void setLhs(const T& ast) {
-                this->Lhs = std::move(ast);
-            }
-
-            template <typename T>
-            void setRhs(const T& ast) {
-                this->Rhs = std::move(ast);
-            }
-
-            void setVal(const std::string& op) { this->Op = op; }
         };
 
         struct monoExprAST : public baseAST {
             std::string Op;
             std::shared_ptr<baseAST> Lhs;
 
-            monoExprAST() : baseAST(AstID::MonoExprID) {}
+            monoExprAST(std::string op) : baseAST(AstID::MonoExprID), Op(op) {}
+            monoExprAST(std::shared_ptr<baseAST>& ast)
+                : baseAST(AstID::MonoExprID), Lhs(std::move(ast)) {}
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::MonoExprID;
             }
@@ -158,7 +148,8 @@ namespace otter {
             std::vector<TypeID> Types;
             std::vector<std::shared_ptr<baseAST>> Statements;
 
-            functionAST(decltype(nullptr) nl) : baseAST(AstID::FunctionID){};
+            functionAST(auto& null = nullptr) : baseAST(AstID::FunctionID){
+            };
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::FunctionID;
             }
@@ -186,7 +177,7 @@ namespace otter {
 
         struct funcCallAST : public baseAST {
             std::string Name;
-            std::vector<variableAST> Args;
+            std::vector<std::shared_ptr<baseAST>> Args;
 
             funcCallAST(std::string name)
                 : baseAST(AstID::FuncCallID), Name(name){};
@@ -198,35 +189,15 @@ namespace otter {
         };
 
         struct moduleAST : public baseAST {
-            std::vector<std::shared_ptr<variableAST>> Vars;
-            std::vector<std::shared_ptr<funcCallAST>> Funcs;
+            std::vector<std::shared_ptr<baseAST>> Stmt;
 
             moduleAST() : baseAST(AstID::ModuleID){};
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::ModuleID;
             }
 
-            void addAst(const auto& ast, auto& type) {
-                if (std::is_convertible<decltype(ast),
-                                        std::shared_ptr<variableAST>>::value ==
-                    true) {
-                    Vars.push_back(std::move(ast));
-                }
-            }
-
             void addAst(const auto& ast) {
-                if (std::is_convertible<decltype(ast),
-                                        std::shared_ptr<funcCallAST>>::value ==
-                    true) {
-                    Funcs.push_back(std::move(ast));
-                }
-            }
-            auto getFuncs() -> std::vector<std::shared_ptr<funcCallAST>>& {
-                return this->Funcs;
-            }
-
-            auto getVars() -> std::vector<std::shared_ptr<variableAST>>& {
-                return this->Vars;
+                Stmt.emplace_back(ast);
             }
         };
 

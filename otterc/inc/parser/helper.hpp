@@ -28,11 +28,19 @@ namespace otter {
 
             template <typename T>
             decltype(auto) sharedAssign(auto&& arg) {
-                return [&arg](auto& ctx) {
-                    x3::_val(ctx) = std::move(std::make_shared<T>(arg));
+                return [=](auto& ctx) {
+                    x3::_val(ctx) = std::move(std::make_shared<T>(x3::_attr(ctx),arg));
                 };
             }
 
+
+            template <typename T>
+            decltype(auto) makeBinaryExpr(auto&& op){
+                return [&op](auto& ctx){
+                    x3::_val(ctx) = std::make_shared<T>(x3::_val(ctx), op, x3::_attr(ctx)); 
+                };
+            }
+            
             decltype(auto) sharedAdd() {
                 return [](auto& ctx) { x3::_val(ctx)->setVal(_attr(ctx)); };
             }
@@ -44,6 +52,13 @@ namespace otter {
             decltype(auto) addAST() {
                 return [](auto& ctx) {
                     x3::_val(ctx)->addAst(std::move(x3::_attr(ctx)));
+                };
+            }
+
+            template <typename T>
+            decltype(auto) addAST() {
+                return [](auto& ctx) {
+                    x3::_val(ctx)->addAst(std::make_shared<T>(x3::_attr(ctx)));
                 };
             }
 
