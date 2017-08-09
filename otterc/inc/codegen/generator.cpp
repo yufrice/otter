@@ -6,8 +6,6 @@ namespace otter {
         using namespace otter::ast;
         using namespace llvm;
 
-        LLVMContext Generator::TheContext;
-
         Generator::Generator()
             : Builder(new IRBuilder<>(context.get())),
               Module(new llvm::Module("OtterModule", context.get())){};
@@ -152,11 +150,11 @@ namespace otter {
                     Value* val = nullptr;
                     llvm::Type* type;
                     std::string format;
-                    FunctionType* func_type = FunctionType::get(Type::getInt32Ty(context.get()), PointerType::get(llvm::Type::getInt8Ty(context.get()),0), true);
-                    Function* pFunc = dyn_cast<Function>(this->Module->getOrInsertFunction("printf", func_type));
                     if(auto args = rawCall->Args.at(0)){
                         if(detail::sharedIsa<identifierAST>(args)){
                             if(auto rawID = detail::sharedCast<identifierAST>(args)){
+                                FunctionType* func_type = FunctionType::get(Type::getInt32Ty(context.get()), PointerType::get(llvm::Type::getInt8Ty(context.get()),0), true);
+                                Function* pFunc = dyn_cast<Function>(this->Module->getOrInsertFunction("printf", func_type));
                                 auto gvTable = this->Module->getValueSymbolTable();
                                 if(auto id = gvTable.lookup(rawID->Ident)){
                                     val = id;
@@ -173,61 +171,37 @@ namespace otter {
                                     throw std::string(rawID->Ident + " was not declar");
                                 }
                                 detail::stdOutType(type,format);
+                            llvm::Value* fInst;
+                            if(!this->context.resolveFormat(format)){
+                                fInst = Builder->CreateGlobalStringPtr(format,
+                                    detail::formatNameMangling(format));
+                            }else{
+                                auto vTable = this->Module->getValueSymbolTable();
+                                auto fName = detail::formatNameMangling(format);
+                                if(auto id = vTable.lookup(fName)){
+                                    fInst = this->Builder->CreateInBoundsGEP(id,std::vector<Value*>
+                                        (2,ConstantInt::getSigned(llvm::Type::getInt32Ty(this->context.get()),0)));
+                                }
+                            }
+                        
+                            std::vector<Value*> argValue(1,fInst);
+                            if(type->getPointerElementType()->getTypeID() == 14){
+                                argValue.push_back(val);
+                            }else{
+                                auto loadInst = dyn_cast<LoadInst>(addModuleInst(new LoadInst(val)));
+                                argValue.push_back(loadInst);
+                            }
+                            return CallInst::Create(pFunc, argValue);
                             }
                         }else if(detail::sharedIsa<stringAST>(args)){
                             if(auto rawStr = detail::sharedCast<stringAST>(args)){
-                                ArrayType* Type =
-                                    ArrayType::get(IntegerType::get(context.get(), 8),
-                                        (rawStr->Str).length() + 2);
-                               Constant* strCons = ConstantDataArray::getString(
-                                    context.get(), rawStr->Str);
-                                    AllocaInst* allocaInst;
-                                    if(func != nullptr){
-                                        allocaInst = dyn_cast<AllocaInst>(addModuleInst (new AllocaInst(Type, strCons)));
-                                    }else{
-                                        allocaInst = dyn_cast<AllocaInst>(addModuleInst (new AllocaInst(Type, strCons)));
-                                    }
-                                format = "%s\n";
-
-                                llvm::Value* fInst;
-                                if(!this->context.resolveFormat(format)){
-                                    fInst = Builder->CreateGlobalStringPtr(format,
-                                        detail::formatNameMangling(format));
-                                }else{
-                                    auto vTable = this->Module->getValueSymbolTable();
-                                    auto fName = detail::formatNameMangling(format);
-                                    if(auto id = vTable.lookup(fName)){
-                                        fInst = this->Builder->CreateInBoundsGEP(id,std::vector<Value*>
-                                            (2,ConstantInt::getSigned(llvm::Type::getInt32Ty(this->context.get()),0)));
-                            }
-                                }
-                                std::vector<Value*> argValue(1,fInst);
-                                argValue.push_back(allocaInst);
-                                return CallInst::Create(pFunc, argValue);
+                                FunctionType* func_type = FunctionType::get(Type::getInt32Ty(context.get()), PointerType::get(llvm::Type::getInt8Ty(context.get()),0), false);
+                                Function* pFunc = dyn_cast<Function>(this->Module->getOrInsertFunction("puts", func_type));
+                                auto gStr = Builder->CreateGlobalStringPtr(rawStr->Str);
+                                return CallInst::Create(pFunc, gStr);
                             }
                         }
 
-                        llvm::Value* fInst;
-                        if(!this->context.resolveFormat(format)){
-                            fInst = Builder->CreateGlobalStringPtr(format,
-                                detail::formatNameMangling(format));
-                        }else{
-                            auto vTable = this->Module->getValueSymbolTable();
-                            auto fName = detail::formatNameMangling(format);
-                            if(auto id = vTable.lookup(fName)){
-                                fInst = this->Builder->CreateInBoundsGEP(id,std::vector<Value*>
-                                    (2,ConstantInt::getSigned(llvm::Type::getInt32Ty(this->context.get()),0)));
-                            }
-                        }
-                        
-                        std::vector<Value*> argValue(1,fInst);
-                        if(type->getPointerElementType()->getTypeID() == 14){
-                            argValue.push_back(val);
-                        }else{
-                            auto loadInst = dyn_cast<LoadInst>(addModuleInst(new LoadInst(val)));
-                            argValue.push_back(loadInst);
-                        }
-                        return CallInst::Create(pFunc, argValue);
                     }
 
                 }

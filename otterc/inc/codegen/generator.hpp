@@ -21,7 +21,6 @@ namespace otter {
             llvm::Module* generatorModule(std::shared_ptr<moduleAST> mod);
 
            private:
-            static llvm::LLVMContext TheContext;
             Context context;
             llvm::BasicBlock* Entry;
             llvm::IRBuilder<>* Builder;
