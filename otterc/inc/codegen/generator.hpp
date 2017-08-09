@@ -7,6 +7,7 @@
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/ValueSymbolTable.h>
 #include "../ast/ast.hpp"
+#include "context.hpp"
 #include "helper.hpp"
 
 namespace otter {
@@ -21,6 +22,7 @@ namespace otter {
 
            private:
             static llvm::LLVMContext TheContext;
+            Context context;
             llvm::BasicBlock* Entry;
             llvm::IRBuilder<>* Builder;
             llvm::Module* Module;

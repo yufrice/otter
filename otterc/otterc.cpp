@@ -1,8 +1,8 @@
 #include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/raw_ostream.h>
-#include <experimental/filesystem>
 #include <llvm/Support/CommandLine.h>
+#include <experimental/filesystem>
 #include <iostream>
 #include <fstream>
 #include <memory>

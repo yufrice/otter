@@ -75,6 +75,16 @@ namespace otter {
                     }
             };
 
+            decltype(auto) formatNameMangling = [](const std::string& name){
+                if(name == "%s\n"){
+                    return "stringFormat";
+                }else if(name == "%d\n"){
+                    return "digitFormat";
+                }else if(name == "%lf\n"){
+                    return "realFormat";
+                }
+            };
+
         }  // name space detail
     }      // namespace codegen
 }  // namespace otter

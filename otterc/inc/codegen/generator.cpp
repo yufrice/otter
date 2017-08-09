@@ -9,8 +9,8 @@ namespace otter {
         LLVMContext Generator::TheContext;
 
         Generator::Generator()
-            : Builder(new IRBuilder<>(TheContext)),
-              Module(new llvm::Module("OtterModule", TheContext)){};
+            : Builder(new IRBuilder<>(context.get())),
+              Module(new llvm::Module("OtterModule", context.get())){};
 
         Generator::~Generator() {
             delete this->Builder;
@@ -26,12 +26,12 @@ namespace otter {
 
         Module* Generator::generatorModule(std::shared_ptr<moduleAST> mod) {
             FunctionType* funcType = FunctionType::get(
-                llvm::Type::getVoidTy(this->TheContext), false);
+                llvm::Type::getVoidTy(context.get()), false);
             Function* mainFunc = Function::Create(
                 funcType, Function::ExternalLinkage, "main", this->Module);
 
             this->Entry =
-                BasicBlock::Create(this->TheContext, "entry", mainFunc);
+                BasicBlock::Create(context.get(), "entry", mainFunc);
             Builder->SetInsertPoint(this->Entry);
             Builder->CreateRetVoid();
             auto retEnd = --(this->Entry->end());
@@ -59,9 +59,6 @@ namespace otter {
                     }
                 }
             }
-
-            //auto retVoid = ReturnInst::Create(this->TheContext);
-            //entry->getInstList().insert(entry->end(), retVoid);
 
             Module->dump();
             return this->Module;
@@ -94,12 +91,12 @@ namespace otter {
                 }
 
                 if (var->Type == TypeID::Int) {
-                    constant  = llvm::ConstantInt::getSigned(Type::getInt32Ty(this->TheContext),init);
+                    constant  = llvm::ConstantInt::getSigned(Type::getInt32Ty(context.get()),init);
                 } else if(var->Type == TypeID::Double){
-                    constant  = llvm::ConstantFP::get(Type::getDoubleTy(this->TheContext), init);
+                    constant  = llvm::ConstantFP::get(Type::getDoubleTy(context.get()), init);
                 }
                 auto gvar = new GlobalVariable(
-                    *this->Module, detail::type2type(var->Type,this->TheContext), false,
+                    *this->Module, detail::type2type(var->Type,context.get()), false,
                     GlobalVariable::LinkageTypes::PrivateLinkage, nullptr,
                     var->Name);
                 if (detail::sharedIsa<numberAST>(var->Val)) {
@@ -116,7 +113,7 @@ namespace otter {
             std::shared_ptr<variableAST> var) {
             if (auto rawStr = detail::sharedCast<stringAST>(var->Val)) {
                 ArrayType* Type =
-                    ArrayType::get(IntegerType::get(this->TheContext, 8),
+                    ArrayType::get(IntegerType::get(context.get(), 8),
                                    (rawStr->Str).length() + 1);
                 auto Name = var->Name;
                 GlobalVariable* gvar =
@@ -124,7 +121,7 @@ namespace otter {
                                        GlobalValue::PrivateLinkage, 0, Name);
 
                 Constant* strCons = ConstantDataArray::getString(
-                    this->TheContext, rawStr->Str);
+                    context.get(), rawStr->Str);
 
                 gvar->setInitializer(strCons);
                 return gvar;
@@ -155,7 +152,7 @@ namespace otter {
                     Value* val = nullptr;
                     llvm::Type* type;
                     std::string format;
-                    FunctionType* func_type = FunctionType::get(Type::getInt32Ty(this->TheContext), PointerType::get(llvm::Type::getInt8Ty(this->TheContext),0), true);
+                    FunctionType* func_type = FunctionType::get(Type::getInt32Ty(context.get()), PointerType::get(llvm::Type::getInt8Ty(context.get()),0), true);
                     Function* pFunc = dyn_cast<Function>(this->Module->getOrInsertFunction("printf", func_type));
                     if(auto args = rawCall->Args.at(0)){
                         if(detail::sharedIsa<identifierAST>(args)){
@@ -180,10 +177,10 @@ namespace otter {
                         }else if(detail::sharedIsa<stringAST>(args)){
                             if(auto rawStr = detail::sharedCast<stringAST>(args)){
                                 ArrayType* Type =
-                                    ArrayType::get(IntegerType::get(this->TheContext, 8),
+                                    ArrayType::get(IntegerType::get(context.get(), 8),
                                         (rawStr->Str).length() + 2);
                                Constant* strCons = ConstantDataArray::getString(
-                                    this->TheContext, rawStr->Str);
+                                    context.get(), rawStr->Str);
                                     AllocaInst* allocaInst;
                                     if(func != nullptr){
                                         allocaInst = dyn_cast<AllocaInst>(addModuleInst (new AllocaInst(Type, strCons)));
@@ -191,12 +188,39 @@ namespace otter {
                                         allocaInst = dyn_cast<AllocaInst>(addModuleInst (new AllocaInst(Type, strCons)));
                                     }
                                 format = "%s\n";
-                                std::vector<Value*> argValue(1,Builder->CreateGlobalStringPtr(format));
+
+                                llvm::Value* fInst;
+                                if(!this->context.resolveFormat(format)){
+                                    fInst = Builder->CreateGlobalStringPtr(format,
+                                        detail::formatNameMangling(format));
+                                }else{
+                                    auto vTable = this->Module->getValueSymbolTable();
+                                    auto fName = detail::formatNameMangling(format);
+                                    if(auto id = vTable.lookup(fName)){
+                                        fInst = this->Builder->CreateInBoundsGEP(id,std::vector<Value*>
+                                            (2,ConstantInt::getSigned(llvm::Type::getInt32Ty(this->context.get()),0)));
+                            }
+                                }
+                                std::vector<Value*> argValue(1,fInst);
                                 argValue.push_back(allocaInst);
                                 return CallInst::Create(pFunc, argValue);
                             }
                         }
-                        std::vector<Value*> argValue(1,Builder->CreateGlobalStringPtr(format));
+
+                        llvm::Value* fInst;
+                        if(!this->context.resolveFormat(format)){
+                            fInst = Builder->CreateGlobalStringPtr(format,
+                                detail::formatNameMangling(format));
+                        }else{
+                            auto vTable = this->Module->getValueSymbolTable();
+                            auto fName = detail::formatNameMangling(format);
+                            if(auto id = vTable.lookup(fName)){
+                                fInst = this->Builder->CreateInBoundsGEP(id,std::vector<Value*>
+                                    (2,ConstantInt::getSigned(llvm::Type::getInt32Ty(this->context.get()),0)));
+                            }
+                        }
+                        
+                        std::vector<Value*> argValue(1,fInst);
                         if(type->getPointerElementType()->getTypeID() == 14){
                             argValue.push_back(val);
                         }else{
@@ -219,31 +243,31 @@ namespace otter {
                      args != rawVal->Args.end(); ++argType, ++args) {
                     if (*argType == TypeID::Int) {
                         typeArgs.emplace_back(
-                            Type::getInt32Ty(this->TheContext));
+                            Type::getInt32Ty(context.get()));
                     } else if (*argType == TypeID::Double) {
                         typeArgs.emplace_back(
-                            Type::getDoubleTy(this->TheContext));
+                            Type::getDoubleTy(context.get()));
                     } else if (*argType == TypeID::String) {
                         typeArgs.emplace_back(PointerType::get(
-                            Type::getInt8Ty(this->TheContext), 0));
+                            Type::getInt8Ty(context.get()), 0));
                     }
                 }
                 ArrayRef<llvm::Type*> argsRef(typeArgs);
                 if (var->Type == TypeID::Int) {
                     Type = FunctionType::get(
-                        llvm::Type::getInt32Ty(this->TheContext), argsRef,
+                        llvm::Type::getInt32Ty(context.get()), argsRef,
                         false);
                 } else if (var->Type == TypeID::Double) {
                     Type = FunctionType::get(
-                        llvm::Type::getDoubleTy(this->TheContext), argsRef,
+                        llvm::Type::getDoubleTy(context.get()), argsRef,
                         false);
                 } else if (var->Type == TypeID::String) {
                     Type = FunctionType::get(
-                        PointerType::get(Type::getInt8Ty(this->TheContext), 0),
+                        PointerType::get(Type::getInt8Ty(context.get()), 0),
                         argsRef, false);
                 } else if (var->Type == TypeID::Unit) {
                     Type = FunctionType::get(
-                        llvm::Type::getVoidTy(this->TheContext), argsRef,
+                        llvm::Type::getVoidTy(context.get()), argsRef,
                         false);
                 }
 
@@ -251,7 +275,7 @@ namespace otter {
                     Function::Create(Type, llvm::Function::PrivateLinkage,
                                      var->Name, this->Module);
                 BasicBlock* bblock =
-                    BasicBlock::Create(this->TheContext, "entry", func);
+                    BasicBlock::Create(context.get(), "entry", func);
                 Builder->SetInsertPoint(bblock);
                 Value* ret;
 
@@ -290,10 +314,10 @@ namespace otter {
                     detail::shared4Shared<variableAST>(stmt),func->getValueSymbolTable());
             } else if (detail::sharedIsa<binaryExprAST>(stmt)) {
                 TypeID type;
-                if (llvm::Type::getDoubleTy(this->TheContext) ==
+                if (llvm::Type::getDoubleTy(context.get()) ==
                     func->getReturnType()) {
                     type = TypeID::Double;
-                } else if (llvm::Type::getInt32Ty(this->TheContext) ==
+                } else if (llvm::Type::getInt32Ty(context.get()) ==
                            func->getReturnType()) {
                     type = TypeID::Int;
                 }
@@ -301,7 +325,7 @@ namespace otter {
                 return value;
             } else if (detail::sharedIsa<numberAST>(stmt)) {
                 if(auto rawNum = detail::sharedCast<numberAST>(stmt)){
-                if (llvm::Type::getDoubleTy(this->TheContext) ==
+                if (llvm::Type::getDoubleTy(context.get()) ==
                     func->getReturnType()) {
                         return llvm::ConstantFP::get(func->getReturnType() , rawNum->Val);
                     }else{
@@ -310,7 +334,7 @@ namespace otter {
                 }
             } else if (detail::sharedIsa<stringAST>(stmt)) {
                 if (auto rawStr = detail::sharedCast<stringAST>(stmt)) {
-                    return ConstantDataArray::getString(this->TheContext,
+                    return ConstantDataArray::getString(context.get(),
                                                         rawStr->Str);
                 }
             }
@@ -340,19 +364,19 @@ namespace otter {
                 constant = GeneratorGlobalValue(var->Val,var->Type,vTable);
             } else if (detail::sharedIsa<numberAST>(var->Val)) {
                 constant = detail::constantGet(std::move(var->Val), var->Type,
-                                           this->TheContext);
+                                           context.get());
             }
-            return this->Builder->CreateAlloca(detail::type2type(var->Type,this->TheContext),constant, var->Name);
+            return this->Builder->CreateAlloca(detail::type2type(var->Type,context.get()),constant, var->Name);
         }
 
         Value* Generator::generateString(std::shared_ptr<variableAST> var) {
             if (auto rawStr = detail::sharedCast<stringAST>(var->Val)) {
                 ArrayType* Type =
-                    ArrayType::get(IntegerType::get(this->TheContext, 8),
+                    ArrayType::get(IntegerType::get(context.get(), 8),
                                    (rawStr->Str).length() + 2);
                 auto Name = var->Name;
                 Constant* strCons = ConstantDataArray::getString(
-                    this->TheContext, rawStr->Str);
+                    context.get(), rawStr->Str);
                 return this->Builder->CreateAlloca(Type, strCons, Name);
             }
         }
@@ -368,7 +392,7 @@ namespace otter {
                 throw std::string(rawVal->Ident + "was not declar");
             } else if (detail::sharedIsa<numberAST>(var)) {
                 return detail::constantGet(std::move(var), type,
-                                           this->TheContext);
+                                           context.get());
             } else if (auto rawVal = detail::sharedCast<binaryExprAST>(var)) {
                 if (rawVal->Rhs) {
                     if (rawVal->Op == "+") {
