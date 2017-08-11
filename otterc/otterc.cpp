@@ -1,3 +1,6 @@
+#include <llvm/LinkAllPasses.h>
+#include <llvm/IR/LegacyPassManager.h>
+
 #include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/raw_ostream.h>
@@ -50,13 +53,16 @@ int main(int argc, char** argv) {
             semantics::preCheck pck(result);
             pck.check();
 
+            llvm::legacy::PassManager pm;
+            pm.add(llvm::createPromoteMemoryToRegisterPass());
             std::error_code err;
             std::string out(OutputFilename.c_str());
             llvm::raw_fd_ostream raw_stream(out, err,
                                             llvm::sys::fs::OpenFlags::F_RW);
             codegen::Generator gen;
-            llvm::WriteBitcodeToFile(gen.generatorModule(std::move(result)),
-                                     raw_stream);
+            auto Module = gen.generatorModule(result);
+            pm.add(llvm::createPrintModulePass(raw_stream));
+            pm.run(*Module);
             raw_stream.close();
         } else {
             /* ToDo

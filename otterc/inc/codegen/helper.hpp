@@ -85,6 +85,37 @@ namespace otter {
                 }
             };
 
+            namespace{
+                decltype(auto) equalPair = [](const auto &pair,const auto& str1, const auto& str2){
+                                if(pair.first == str1 && pair.second == str2){
+                                    return true;
+                                }else{
+                                    false;
+                                }
+                };
+            } // name space any
+
+            decltype(auto) op2op = [](const std::string& op,const ast::TypeID& type){
+                auto pair = std::make_pair(op,type);
+                if(equalPair(pair,"+",ast::TypeID::Int)){
+                    return llvm::Instruction::Add; 
+                }else if(equalPair(pair,"+",ast::TypeID::Double)){
+                    return llvm::Instruction::FAdd; 
+                }else if(equalPair(pair,"-",ast::TypeID::Int)){
+                    return llvm::Instruction::Sub; 
+                }else if(equalPair(pair,"-",ast::TypeID::Double)){
+                    return llvm::Instruction::FSub; 
+                }else if(equalPair(pair,"*",ast::TypeID::Int)){
+                    return llvm::Instruction::Mul; 
+                }else if(equalPair(pair,"*",ast::TypeID::Double)){
+                    return llvm::Instruction::FMul; 
+                }else if(equalPair(pair,"/",ast::TypeID::Int)){
+                    return llvm::Instruction::SDiv; 
+                }else if(equalPair(pair,"/",ast::TypeID::Double)){
+                    return llvm::Instruction::FDiv; 
+                }
+            };
+
         }  // name space detail
     }      // namespace codegen
 }  // namespace otter

@@ -5,7 +5,9 @@ set(CMAKE_CXX_FLAGS "-std=c++1z")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
-find_package(LLVM REQUIRED CONFIG)
+set(LLVM_CONFIG_PATH "/usr/bin/llvm-config")
+
+find_package(LLVM 4.0 REQUIRED Utils ${EXTRA_LLVM_MODULES} CONFIG)
 INCLUDE_DIRECTORIES(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
@@ -18,6 +20,6 @@ add_executable(otterc
 	./inc/codegen/context.cpp
 	./inc/semantics/preCheck.cpp
 	otterc.cpp)
-llvm_map_components_to_libnames(llvm_libs support core bitwriter)
+llvm_map_components_to_libnames(llvm_libs bitwriter passes objcarcopts)
 target_link_libraries(otterc stdc++fs ${llvm_libs})
 

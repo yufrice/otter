@@ -22,7 +22,7 @@ namespace otter {
             return inst;
        }
 
-        Module* Generator::generatorModule(std::shared_ptr<moduleAST> mod) {
+        Module* Generator::generatorModule(const std::shared_ptr<moduleAST> &mod) {
             FunctionType* funcType = FunctionType::get(
                 llvm::Type::getVoidTy(context.get()), false);
             Function* mainFunc = Function::Create(
@@ -355,66 +355,26 @@ namespace otter {
             }
         }
 
-        Value* Generator::GeneratorGlobalValue(std::shared_ptr<baseAST> var,
+        Value* Generator::GeneratorGlobalValue(const std::shared_ptr<baseAST>& var,
                                          TypeID type, llvm::ValueSymbolTable* vTable) {
             if (auto rawVal = detail::sharedCast<identifierAST>(var)) {
                 if(auto id = vTable->lookup(rawVal->Ident)){
-                    return this->Builder->CreateLoad(id, "");
+                    return new LoadInst(id,"");
                 }else if(auto id = this->Module->getValueSymbolTable().lookup(rawVal->Ident)){
-                    return this->Builder->CreateLoad(id, "");
+                    return addModuleInst(new LoadInst(id,""));
                 }
                 throw std::string(rawVal->Ident + "was not declar");
             } else if (detail::sharedIsa<numberAST>(var)) {
                 return detail::constantGet(std::move(var), type,
                                            context.get());
             } else if (auto rawVal = detail::sharedCast<binaryExprAST>(var)) {
-                if (rawVal->Rhs) {
-                    if (rawVal->Op == "+") {
-                        if (type == TypeID::Int) {
-                            return this->Builder->CreateAdd(
+                            return addModuleInst(BinaryOperator::Create(detail::op2op(rawVal->Op,type),
                                 GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable)),
-                                GeneratorGlobalValue(rawVal->Rhs, type,std::move(vTable)));
-                        } else {
-                            return this->Builder->CreateFAdd(
-                                GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable)),
-                                GeneratorGlobalValue(rawVal->Rhs, type,std::move(vTable)));
-                        }
-                    } else if (rawVal->Op == "-") {
-                        if (type == TypeID::Int) {
-                            return this->Builder->CreateSub(
-                                GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable)),
-                                GeneratorGlobalValue(rawVal->Rhs, type,std::move(vTable)));
-                        } else {
-                            return this->Builder->CreateFSub(
-                                GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable)),
-                                GeneratorGlobalValue(rawVal->Rhs, type,std::move(vTable)));
-                        }
-                    } else if (rawVal->Op == "*") {
-                        if (type == TypeID::Int) {
-                            return this->Builder->CreateMul(
-                                GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable)),
-                                GeneratorGlobalValue(rawVal->Rhs, type,std::move(vTable)));
-                        } else {
-                            return this->Builder->CreateFMul(
-                                GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable)),
-                                GeneratorGlobalValue(rawVal->Rhs, type,std::move(vTable)));
-                        }
-                    } else if (rawVal->Op == "/") {
-                        if (type == TypeID::Int) {
-                            return this->Builder->CreateSDiv(
-                                GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable)),
-                                GeneratorGlobalValue(rawVal->Rhs, type,std::move(vTable)));
-                        } else {
-                            return this->Builder->CreateFDiv(
-                                GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable)),
-                                GeneratorGlobalValue(rawVal->Rhs, type,std::move(vTable)));
-                        }
-                    }
-                } else if (rawVal->Lhs) {
-                    return GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable));
-                } else {
-                    return nullptr;
-                }
+                                GeneratorGlobalValue(rawVal->Rhs, type,std::move(vTable))));
+            } else if (rawVal->Lhs) {
+                return GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable));
+            } else {
+                return nullptr;
             }
         }
 
