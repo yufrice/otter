@@ -6,9 +6,9 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/ValueSymbolTable.h>
-#include "../ast/ast.hpp"
-#include "context.hpp"
-#include "helper.hpp"
+#include <ast/ast.hpp>
+#include <codegen/context.hpp>
+#include <codegen/helper.hpp>
 
 namespace otter {
     namespace codegen {

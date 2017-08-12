@@ -1,4 +1,4 @@
-#include "generator.hpp"
+#include <codegen/generator.hpp>
 
 namespace otter {
     namespace codegen {

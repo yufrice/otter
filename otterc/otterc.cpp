@@ -10,7 +10,7 @@
 #include <fstream>
 #include <memory>
 #include <vector>
-#include "otterc.hpp"
+#include <otterc.hpp>
 
 
 int main(int argc, char** argv) {
