@@ -16,9 +16,13 @@ namespace otter {
         }
 
 
-       llvm::Instruction* Generator::addModuleInst(llvm::Instruction* inst){
-            auto retEnd = --(this->Entry->end());
-            this->Entry->getInstList().insert(retEnd, inst);
+       llvm::Instruction* Generator::addModuleInst(llvm::Instruction* inst,bool flag){
+           if(flag){
+               this->Builder->Insert(inst);
+           }else{
+                auto retEnd = --(this->Entry->end());
+                this->Entry->getInstList().insert(retEnd, inst);
+           }
             return inst;
        }
 
@@ -188,7 +192,7 @@ namespace otter {
                             if(type->getPointerElementType()->getTypeID() == 14){
                                 argValue.push_back(val);
                             }else{
-                                auto loadInst = dyn_cast<LoadInst>(addModuleInst(new LoadInst(val)));
+                                auto loadInst = dyn_cast<LoadInst>(addModuleInst(new LoadInst(val),this->context.getCFunc()));
                                 argValue.push_back(loadInst);
                             }
                             return CallInst::Create(pFunc, argValue);
@@ -253,9 +257,12 @@ namespace otter {
                 Builder->SetInsertPoint(bblock);
                 Value* ret;
 
+                this->context.setCFunc(true);
+
                 for (auto& st : rawVal->Statements) {
                     ret = GeneratorStatement(st, func);
                 }
+                this->context.setCFunc(false);
                 if (var->Type == TypeID::Unit) {
                     Builder->CreateRetVoid();
                 } else if(var->Type == TypeID::Int){
@@ -270,7 +277,7 @@ namespace otter {
         Value* Generator::GeneratorStatement(std::shared_ptr<baseAST> stmt,
                                              Function* func) {
             if (detail::sharedIsa<funcCallAST>(stmt)) {
-                return generateCallFunc(stmt,func);
+                return addModuleInst(generateCallFunc(stmt,func),true);
             } else if (detail::sharedIsa<identifierAST>(stmt)) {
                 auto vTable = func->getValueSymbolTable();
                 auto gvTable = this->Module->getValueSymbolTable();
@@ -359,9 +366,9 @@ namespace otter {
                                          TypeID type, llvm::ValueSymbolTable* vTable) {
             if (auto rawVal = detail::sharedCast<identifierAST>(var)) {
                 if(auto id = vTable->lookup(rawVal->Ident)){
-                    return new LoadInst(id,"");
+                    return addModuleInst(new LoadInst(id,""),this->context.getCFunc());
                 }else if(auto id = this->Module->getValueSymbolTable().lookup(rawVal->Ident)){
-                    return addModuleInst(new LoadInst(id,""));
+                    return addModuleInst(new LoadInst(id,""),this->context.getCFunc());
                 }
                 throw std::string(rawVal->Ident + "was not declar");
             } else if (detail::sharedIsa<numberAST>(var)) {
@@ -370,7 +377,7 @@ namespace otter {
             } else if (auto rawVal = detail::sharedCast<binaryExprAST>(var)) {
                             return addModuleInst(BinaryOperator::Create(detail::op2op(rawVal->Op,type),
                                 GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable)),
-                                GeneratorGlobalValue(rawVal->Rhs, type,std::move(vTable))));
+                                GeneratorGlobalValue(rawVal->Rhs, type,std::move(vTable))),this->context.getCFunc());
             } else if (rawVal->Lhs) {
                 return GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable));
             } else {

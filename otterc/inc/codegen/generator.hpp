@@ -25,7 +25,7 @@ namespace otter {
             llvm::BasicBlock* Entry;
             llvm::IRBuilder<>* Builder;
             llvm::Module* Module;
-            llvm::Instruction* addModuleInst(llvm::Instruction*);
+            llvm::Instruction* addModuleInst(llvm::Instruction*,bool flag = false);
             llvm::Value* generateGlovalVariable(std::shared_ptr<variableAST>);
             llvm::GlobalVariable* GeneratorGlobalString(
                 std::shared_ptr<variableAST>);

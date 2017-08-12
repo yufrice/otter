@@ -15,15 +15,17 @@ namespace otter{
                     FormatCounter():digit(false),real(false),string(false){};
                 } 
                 FormatCount;
+
+                bool currentFunc;
                 static llvm::LLVMContext llvmContext;
 
             public:
-                Context(){};
+                Context():currentFunc(false){};
                 ~Context(){};
                 llvm::LLVMContext& get(){return this->llvmContext;}
                 bool resolveFormat(std::string);
-
-
+                void setCFunc(const bool& f){this->currentFunc = f;}
+                bool getCFunc(){return this->currentFunc;}
         };
 
 
