@@ -35,8 +35,8 @@ namespace otter {
             llvm::CallInst* generatePrint(const std::shared_ptr<baseAST>&, const llvm::Function*);
             llvm::Function* GeneratorFunction(std::shared_ptr<variableAST>);
             llvm::Value* GeneratorStatement(std::shared_ptr<baseAST>,
-                                            llvm::Function*);
-            llvm::Value* GeneratorGlobalValue(const std::shared_ptr<baseAST>&, TypeID,llvm::ValueSymbolTable* vTable = new llvm::ValueSymbolTable());
+                                            const llvm::Function*);
+            llvm::Value* GeneratorGlobalValue(const std::shared_ptr<baseAST>&, TypeID,const llvm::ValueSymbolTable* vTable = new llvm::ValueSymbolTable());
         };
     }  // namespace codegen
 }  // namespace otter
