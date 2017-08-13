@@ -5,5 +5,6 @@
 #include <parser/parser.hpp>
 #include <semantics/preCheck.hpp>
 #include <codegen/generator.hpp>
+#include <driver/driver.hpp>
 
 #endif

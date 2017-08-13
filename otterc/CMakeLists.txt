@@ -19,6 +19,7 @@ add_executable(otterc
 	./lib/codegen/generator.cpp
 	./lib/codegen/context.cpp
 	./lib/semantics/preCheck.cpp
+	./lib/driver/driver.cpp
 	otterc.cpp)
 llvm_map_components_to_libnames(llvm_libs bitwriter passes objcarcopts)
 target_link_libraries(otterc stdc++fs ${llvm_libs})
