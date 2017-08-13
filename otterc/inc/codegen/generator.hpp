@@ -18,25 +18,25 @@ namespace otter {
            public:
             Generator();
             ~Generator();
-            llvm::Module* generatorModule(const std::shared_ptr<moduleAST> &mod);
+            std::unique_ptr<llvm::Module> generatorModule(const std::shared_ptr<moduleAST> &mod);
 
            private:
             Context context;
             llvm::BasicBlock* Entry;
             llvm::IRBuilder<>* Builder;
-            llvm::Module* Module;
+            std::unique_ptr<llvm::Module> Module;
             llvm::Instruction* addModuleInst(llvm::Instruction*,bool flag = false);
-            llvm::Value* generateGlovalVariable(std::shared_ptr<variableAST>);
+            llvm::Value* generateGlovalVariable(const std::shared_ptr<variableAST>&);
             llvm::GlobalVariable* GeneratorGlobalString(
                 std::shared_ptr<variableAST>);
-            llvm::Value* generateVariable(std::shared_ptr<variableAST>,auto);
+            llvm::Value* generateVariable(const std::shared_ptr<variableAST>&,auto);
             llvm::Value* generateString(std::shared_ptr<variableAST>);
             llvm::CallInst* generateCallFunc(const std::shared_ptr<baseAST>&, const llvm::Function* = nullptr);
             llvm::CallInst* generatePrint(const std::shared_ptr<baseAST>&, const llvm::Function*);
             llvm::Function* GeneratorFunction(std::shared_ptr<variableAST>);
             llvm::Value* GeneratorStatement(std::shared_ptr<baseAST>,
                                             const llvm::Function*);
-            llvm::Value* GeneratorGlobalValue(const std::shared_ptr<baseAST>&, TypeID,const llvm::ValueSymbolTable* vTable = new llvm::ValueSymbolTable());
+            llvm::Value* GeneratorGlobalValue(const std::shared_ptr<baseAST>&, TypeID,const llvm::ValueSymbolTable* vTable = nullptr);
         };
     }  // namespace codegen
 }  // namespace otter

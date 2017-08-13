@@ -59,11 +59,12 @@ int main(int argc, char** argv) {
             std::string out(OutputFilename.c_str());
             llvm::raw_fd_ostream raw_stream(out, err,
                                             llvm::sys::fs::OpenFlags::F_RW);
-            codegen::Generator gen;
-            auto Module = gen.generatorModule(result);
+            auto gen = std::unique_ptr<codegen::Generator>(new codegen::Generator);
+            std::unique_ptr<llvm::Module> Module(gen->generatorModule(result));
             pm.add(llvm::createPrintModulePass(raw_stream));
-            pm.run(*Module);
+            pm.run(*(Module.get()));
             raw_stream.close();
+
         } else {
             /* ToDo
              *  error handring
@@ -81,5 +82,6 @@ int main(int argc, char** argv) {
         std::cerr << "\x1b[0m";
         std::cerr << e << std::endl;
     }
+
     return 0;
 }

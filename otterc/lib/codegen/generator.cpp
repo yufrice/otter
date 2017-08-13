@@ -12,7 +12,6 @@ namespace otter {
 
         Generator::~Generator() {
             delete this->Builder;
-            delete this->Module;
         }
 
 
@@ -26,11 +25,11 @@ namespace otter {
             return inst;
        }
 
-        Module* Generator::generatorModule(const std::shared_ptr<moduleAST> &mod) {
+        std::unique_ptr<Module> Generator::generatorModule(const std::shared_ptr<moduleAST> &mod) {
             FunctionType* funcType = FunctionType::get(
                 llvm::Type::getVoidTy(context.get()), false);
             Function* mainFunc = Function::Create(
-                funcType, Function::ExternalLinkage, "main", this->Module);
+                funcType, Function::ExternalLinkage, "main", this->Module.get());
 
             this->Entry =
                 BasicBlock::Create(context.get(), "entry", mainFunc);
@@ -63,11 +62,11 @@ namespace otter {
             }
 
             Module->dump();
-            return this->Module;
+            return std::move(this->Module);
         }
 
         Value* Generator::generateGlovalVariable(
-            std::shared_ptr<variableAST> var) {
+            const std::shared_ptr<variableAST>& var) {
             if (detail::sharedIsa<functionAST>(var->Val)) {
                 return this->GeneratorFunction(var);
             }else if (var->Type == TypeID::String) {
@@ -81,6 +80,7 @@ namespace otter {
                            GlobalVariable::LinkageTypes::PrivateLinkage, nullptr,
                            var->Name);
                         gvar->setInitializer(id);
+                        return gvar;
                     }
                 }
             } else {
@@ -251,7 +251,7 @@ namespace otter {
 
                 auto func =
                     Function::Create(Type, llvm::Function::PrivateLinkage,
-                                     var->Name, this->Module);
+                                     var->Name, this->Module.get());
                 auto argItr = func->arg_begin();
                 for(auto arg : rawVal->Args){
                     (argItr++)->setName(arg);
@@ -325,7 +325,7 @@ namespace otter {
             }
         }
 
-        Value* Generator::generateVariable(std::shared_ptr<variableAST> var,auto vTable) {
+        Value* Generator::generateVariable(const std::shared_ptr<variableAST>& var,auto vTable) {
             if (detail::sharedIsa<functionAST>(var->Val)) {
                 return this->GeneratorFunction(var);
             } else if (detail::sharedIsa<stringAST>(var->Val)) {
@@ -369,10 +369,13 @@ namespace otter {
         Value* Generator::GeneratorGlobalValue(const std::shared_ptr<baseAST>& var,
                                          TypeID type,const llvm::ValueSymbolTable* vTable) {
             if (auto rawVal = detail::sharedCast<identifierAST>(var)) {
-                if(auto id = vTable->lookup(rawVal->Ident)){
+                if(vTable != nullptr){
+                    if(auto id = vTable->lookup(rawVal->Ident)){
                     //return addModuleInst(new LoadInst(id,""),this->context.getCFunc());
-                    return id;
-                }else if(auto id = this->Module->getValueSymbolTable().lookup(rawVal->Ident)){
+                        return id;
+                    }
+                }
+                if(auto id = this->Module->getValueSymbolTable().lookup(rawVal->Ident)){
                     return addModuleInst(new LoadInst(id,""),this->context.getCFunc());
                     //return id;
                 }
