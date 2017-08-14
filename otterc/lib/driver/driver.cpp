@@ -31,18 +31,14 @@ namespace otter {
         }
 
         llvm::TargetOptions options;
-        llvm::Reloc::Model relocModel = llvm::Reloc::Static;
-        llvm::CodeModel::Model codeModel = llvm::CodeModel::Default;
-        llvm::CodeGenOpt::Level optLevel = llvm::CodeGenOpt::Default;
+        auto relocModel = llvm::Optional<llvm::Reloc::Model>();
         auto targetMachine =
                 target->createTargetMachine(
                     triple.getTriple(),
                     "",
                     "",
                     options,
-                    relocModel,
-                    codeModel,
-                    optLevel);
+                    relocModel);
 
         this->Context->Module->setDataLayout(targetMachine->createDataLayout());
 
