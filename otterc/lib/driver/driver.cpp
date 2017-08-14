@@ -44,7 +44,7 @@ namespace otter {
                     codeModel,
                     optLevel);
 
-        //this->Context->Module->setDataLayout(targetMachine->createDataLayout());
+        this->Context->Module->setDataLayout(targetMachine->createDataLayout());
 
         llvm::legacy::PassManager pm;
         pm.add(llvm::createPromoteMemoryToRegisterPass());
