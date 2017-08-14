@@ -3,6 +3,7 @@
 
 #include <ast/ast.hpp>
 #include <parser/parser.hpp>
+#include <context/context.hpp>
 #include <semantics/preCheck.hpp>
 #include <codegen/generator.hpp>
 #include <driver/driver.hpp>

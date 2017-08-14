@@ -1,12 +1,6 @@
-#include <llvm/LinkAllPasses.h>
-#include <llvm/IR/LegacyPassManager.h>
-
-#include <llvm/Bitcode/BitcodeWriter.h>
-#include <llvm/Support/FileSystem.h>
-#include <llvm/Support/raw_ostream.h>
-#include <llvm/Support/CommandLine.h>
-#include <experimental/filesystem>
 #include <iostream>
+#include <experimental/filesystem>
+#include <llvm/Support/CommandLine.h>
 #include <fstream>
 #include <memory>
 #include <vector>
@@ -19,7 +13,7 @@ int main(int argc, char** argv) {
     namespace fs = std::experimental::filesystem;
 
     static llvm::cl::opt<std::string> InputFilename(llvm::cl::Positional, llvm::cl::desc("<input file>"));
-    static llvm::cl::opt<std::string> OutputFilename("o", llvm::cl::desc("Place the output into <file>."), llvm::cl::value_desc("file"), llvm::cl::init("a.ll"));
+    static llvm::cl::opt<std::string> OutputFilename("o", llvm::cl::desc("Place the output into <file>."), llvm::cl::value_desc("file"), llvm::cl::init("a.out"));
     llvm::cl::ParseCommandLineOptions(argc, argv);
     try {
         std::ostringstream Input(InputFilename.c_str());
@@ -53,17 +47,12 @@ int main(int argc, char** argv) {
             semantics::preCheck pck(result);
             pck.check();
 
-            llvm::legacy::PassManager pm;
-            pm.add(llvm::createPromoteMemoryToRegisterPass());
-            std::error_code err;
-            std::string out(OutputFilename.c_str());
-            llvm::raw_fd_ostream raw_stream(out, err,
-                                            llvm::sys::fs::OpenFlags::F_RW);
-            auto gen = std::unique_ptr<codegen::Generator>(new codegen::Generator);
-            std::unique_ptr<llvm::Module> Module(gen->generatorModule(result));
-            pm.add(llvm::createPrintModulePass(raw_stream));
-            pm.run(*(Module.get()));
-            raw_stream.close();
+            auto codeGen = std::unique_ptr<codegen::Generator>(new codegen::Generator);
+            auto const& context =  context::Context(std::move(
+                codeGen->generatorModule(result)
+            ),OutputFilename.c_str());
+            auto driver = driver::Driver(context);
+            driver.BinaryOut();
 
         } else {
             /* ToDo

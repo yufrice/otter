@@ -61,7 +61,6 @@ namespace otter {
                 }
             }
 
-            Module->dump();
             return std::move(this->Module);
         }
 
