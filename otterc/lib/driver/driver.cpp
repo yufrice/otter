@@ -28,8 +28,6 @@ namespace otter {
 
     void Driver::BinaryOut(){
         static llvmInitialize const llvmInit;
-        //llvm::Triple triple(llvm::sys::getDefaultTargetTriple());
-        //std::cout << triple.getTriple() << std::endl;
         auto triple = llvm::sys::getDefaultTargetTriple();
         std::string targetErr;
         llvm::Target const* target = llvm::TargetRegistry::lookupTarget(triple, targetErr);
@@ -39,6 +37,7 @@ namespace otter {
 
         llvm::TargetOptions options;
         auto relocModel = llvm::Optional<llvm::Reloc::Model>();
+        relocModel = llvm::Reloc::Model::PIC_;
         auto targetMachine =
                 target->createTargetMachine(
                     triple,
@@ -51,7 +50,7 @@ namespace otter {
         this->Context->Module->setDataLayout(targetMachine->createDataLayout());
 
         llvm::legacy::PassManager pm;
-        //pm.add(llvm::createPromoteMemoryToRegisterPass());
+        pm.add(llvm::createPromoteMemoryToRegisterPass());
         std::error_code err;
         llvm::raw_fd_ostream raw_stream("out.obj", err,
             llvm::sys::fs::F_None);
@@ -59,15 +58,13 @@ namespace otter {
         if(targetMachine->addPassesToEmitFile(pm, raw_stream, fileType)){
             throw std::string("fail gen tartget machine");
         }
-        //pm.add(llvm::createPrintModulePass(raw_stream));
         pm.run(*(this->Context->Module));
-        this->Context->Module->dump();
         raw_stream.flush();
-        std::string const command = "g++ -fPIC -o " + this->Context->OutputPath + " out.obj";
-        std::system(command.c_str());
-        //raw_stream.close();
-    }
 
+        std::string const command = "clang++ -o " + this->Context->OutputPath + " out.obj";
+        std::system(command.c_str());
+        std::system("rm out.obj");
+    }
 
     } // namespace driver 
 } //namespace otter 
