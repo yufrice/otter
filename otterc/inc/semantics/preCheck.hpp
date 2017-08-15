@@ -4,7 +4,7 @@
 #include <memory>
 #include <deque>
 #include <algorithm>
-#include "../ast/ast.hpp"
+#include <ast/ast.hpp>
 
 namespace otter {
     namespace semantics {

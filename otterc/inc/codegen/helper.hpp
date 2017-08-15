@@ -26,16 +26,8 @@ namespace otter {
             }
 
             decltype(auto) constantGet(std::shared_ptr<ast::baseAST> ast,
-                                       ast::TypeID type,
                                        auto& context) -> llvm::Value* {
                 if (auto rawVal = sharedCast<ast::numberAST>(ast)) {
-                    if(rawVal->Type != type){
-                        if (rawVal->Type == ast::TypeID::Int) {
-                            throw std::string("invalid conversion from 'Int' to 'Double'");
-                        }else{
-                            throw std::string("invalid conversion from 'Double' to 'Int'");
-                        }
-                    }
                     if (rawVal->Type == ast::TypeID::Int) {
                         auto valueType = llvm::Type::getInt32Ty(context);
                         return llvm::ConstantInt::getSigned(valueType,
@@ -64,14 +56,13 @@ namespace otter {
                 }
             }
 
-            decltype(auto) stdOutType = [](llvm::Type*& Type,std::string& format){
-                    if(Type->getPointerElementType()->getTypeID() == 14){
+            decltype(auto) stdOutType = [](llvm::Type* Type,std::string& format){
+                    if(Type->getTypeID() == 14){
                         format = "%s\n";
-                    }else if(Type->getPointerElementType()->getTypeID() == 11){
+                    }else if(Type->getTypeID() == 11){
                         format = "%d\n";
-                    }else if(Type->getPointerElementType()->getTypeID() == 3){
+                    }else if(Type->getTypeID() == 3){
                         format = "%lf\n";
-                    }else if(Type->getPointerElementType()->getTypeID() == 12){
                     }
             };
 
@@ -82,6 +73,37 @@ namespace otter {
                     return "digitFormat";
                 }else if(name == "%lf\n"){
                     return "realFormat";
+                }
+            };
+
+            namespace{
+                decltype(auto) equalPair = [](const auto &pair,const auto& str1, const auto& str2){
+                                if(pair.first == str1 && pair.second == str2){
+                                    return true;
+                                }else{
+                                    false;
+                                }
+                };
+            } // name space any
+
+            decltype(auto) op2op = [](const std::string& op,const ast::TypeID& type){
+                auto pair = std::make_pair(op,type);
+                if(equalPair(pair,"+",ast::TypeID::Int)){
+                    return llvm::Instruction::Add; 
+                }else if(equalPair(pair,"+",ast::TypeID::Double)){
+                    return llvm::Instruction::FAdd; 
+                }else if(equalPair(pair,"-",ast::TypeID::Int)){
+                    return llvm::Instruction::Sub; 
+                }else if(equalPair(pair,"-",ast::TypeID::Double)){
+                    return llvm::Instruction::FSub; 
+                }else if(equalPair(pair,"*",ast::TypeID::Int)){
+                    return llvm::Instruction::Mul; 
+                }else if(equalPair(pair,"*",ast::TypeID::Double)){
+                    return llvm::Instruction::FMul; 
+                }else if(equalPair(pair,"/",ast::TypeID::Int)){
+                    return llvm::Instruction::SDiv; 
+                }else if(equalPair(pair,"/",ast::TypeID::Double)){
+                    return llvm::Instruction::FDiv; 
                 }
             };
 

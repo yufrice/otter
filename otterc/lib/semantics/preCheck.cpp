@@ -1,4 +1,4 @@
-#include "preCheck.hpp"
+#include <semantics/preCheck.hpp>
 
 namespace otter {
     namespace semantics {
@@ -9,7 +9,6 @@ namespace otter {
         void preCheck::checkOverLap() {
             for (auto stmt : this->Module->Stmt) {
                 if(auto var = std::dynamic_pointer_cast<ast::variableAST>(stmt)){
-
                     this->checkIdAssign(var->Val);
                     auto ptr = var->Val.get();
                     if (nameQueue.end() !=
@@ -21,6 +20,7 @@ namespace otter {
                 }
             }
         }
+
         void preCheck::checkType() {
             for (auto stmt: this->Module->Stmt) {
                 if(auto var = std::dynamic_pointer_cast<ast::variableAST>(stmt)){

@@ -5,19 +5,23 @@ set(CMAKE_CXX_FLAGS "-std=c++1z")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
-find_package(LLVM REQUIRED CONFIG)
-INCLUDE_DIRECTORIES(${LLVM_INCLUDE_DIRS})
+set(LLVM_CONFIG_PATH "/usr/bin/llvm-config")
+
+find_package(LLVM 4.0 REQUIRED ${EXTRA_LLVM_MODULES} CONFIG)
+INCLUDE_DIRECTORIES(./inc ${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
 find_package(Boost 1.6 COMPONENTS program_options REQUIRED)
 
 
-INCLUDE_DIRECTORIES(./inc)
 add_executable(otterc
-	./inc/codegen/generator.cpp
-	./inc/codegen/context.cpp
-	./inc/semantics/preCheck.cpp
+	./lib/context/context.cpp
+	./lib/semantics/preCheck.cpp
+	./lib/codegen/generator.cpp
+	./lib/codegen/context.cpp
+	./lib/driver/driver.cpp
 	otterc.cpp)
-llvm_map_components_to_libnames(llvm_libs support core bitwriter)
+llvm_map_components_to_libnames(llvm_libs bitwriter passes objcarcopts
+x86asmparser x86codegen AArch64asmparser AArch64codegen)
 target_link_libraries(otterc stdc++fs ${llvm_libs})
 

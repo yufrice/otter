@@ -2,7 +2,7 @@
 #define _OTTER_PARSER_HELPER_HPP_
 
 #include <boost/spirit/home/x3.hpp>
-#include "../ast/ast.hpp"
+#include <ast/ast.hpp>
 
 namespace otter {
     namespace parser {

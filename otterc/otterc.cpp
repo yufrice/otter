@@ -1,23 +1,27 @@
-#include <llvm/Bitcode/BitcodeWriter.h>
-#include <llvm/Support/FileSystem.h>
-#include <llvm/Support/raw_ostream.h>
-#include <llvm/Support/CommandLine.h>
-#include <experimental/filesystem>
 #include <iostream>
+#include <experimental/filesystem>
+#include <llvm/Support/CommandLine.h>
 #include <fstream>
 #include <memory>
 #include <vector>
-#include "otterc.hpp"
+#include <otterc.hpp>
 
+
+namespace {
+    static llvm::cl::OptionCategory CompilerCategory("Complier Options");
+    static llvm::cl::opt<std::string> InputFilename(llvm::cl::Positional, llvm::cl::desc("<input>"));
+    static llvm::cl::opt<std::string> OutputFilename("o", llvm::cl::desc("Place the output into <file>."), llvm::cl::value_desc("file"), llvm::cl::init("a.out"),llvm::cl::cat(CompilerCategory));
+    static llvm::cl::opt<bool> DumpOpt("dump", llvm::cl::desc("Display bitcode."), llvm::cl::init(false), llvm::cl::cat(CompilerCategory));;
+}
 
 int main(int argc, char** argv) {
     using namespace boost::spirit;
     using namespace otter;
     namespace fs = std::experimental::filesystem;
 
-    static llvm::cl::opt<std::string> InputFilename(llvm::cl::Positional, llvm::cl::desc("<input file>"));
-    static llvm::cl::opt<std::string> OutputFilename("o", llvm::cl::desc("Place the output into <file>."), llvm::cl::value_desc("file"), llvm::cl::init("a.ll"));
+    llvm::cl::HideUnrelatedOptions(CompilerCategory);
     llvm::cl::ParseCommandLineOptions(argc, argv);
+
     try {
         std::ostringstream Input(InputFilename.c_str());
         if (!Input.good()) {
@@ -50,14 +54,13 @@ int main(int argc, char** argv) {
             semantics::preCheck pck(result);
             pck.check();
 
-            std::error_code err;
-            std::string out(OutputFilename.c_str());
-            llvm::raw_fd_ostream raw_stream(out, err,
-                                            llvm::sys::fs::OpenFlags::F_RW);
-            codegen::Generator gen;
-            llvm::WriteBitcodeToFile(gen.generatorModule(std::move(result)),
-                                     raw_stream);
-            raw_stream.close();
+            auto codeGen = std::unique_ptr<codegen::Generator>(new codegen::Generator);
+            auto const& context =  context::Context(std::move(
+                codeGen->generatorModule(result)
+            ),OutputFilename.c_str(),DumpOpt);
+            auto driver = driver::Driver(context);
+            driver.BinaryOut();
+
         } else {
             /* ToDo
              *  error handring
@@ -75,5 +78,6 @@ int main(int argc, char** argv) {
         std::cerr << "\x1b[0m";
         std::cerr << e << std::endl;
     }
+
     return 0;
 }

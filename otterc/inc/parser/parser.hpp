@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 #include <boost/spirit/home/x3.hpp>
-#include "onError.hpp"
-#include "helper.hpp"
+#include <parser/onError.hpp>
+#include <parser/helper.hpp>
 
 namespace otter {
     namespace parser {
@@ -104,7 +104,8 @@ namespace otter {
 
         auto const funcCall_def = id[detail::sharedAssign<funcCallAST>()] >>
                                   x3::lit('(') >>
-                                  *(addExpr[detail::addAST()] | string[detail::addAST<stringAST>()]) >> x3::lit(')');
+                                  *(funcCall[detail::addAST()] | string[detail::addAST<stringAST>()] |
+                                    addExpr[detail::addAST()]) >> x3::lit(')');
 
         auto const module_def =
             *(variable[detail::addAST()] |
