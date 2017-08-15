@@ -51,6 +51,11 @@ namespace otter {
 
         llvm::legacy::PassManager pm;
         pm.add(llvm::createPromoteMemoryToRegisterPass());
+        //opt pass end
+
+        if(this->Context->dumpflag){
+            this->Context->Module->dump();
+        }
         std::error_code err;
         llvm::raw_fd_ostream raw_stream("out.obj", err,
             llvm::sys::fs::F_None);
@@ -61,7 +66,7 @@ namespace otter {
         pm.run(*(this->Context->Module));
         raw_stream.flush();
 
-        std::string const command = "clang++ -o " + this->Context->OutputPath + " out.obj";
+        std::string const command = "clang -o " + this->Context->OutputPath + " out.obj";
         std::system(command.c_str());
         std::system("rm out.obj");
     }

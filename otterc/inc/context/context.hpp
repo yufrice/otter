@@ -12,11 +12,12 @@ namespace otter{
 
             public:
                 Context(std::shared_ptr<llvm::Module> module,
-                    const std::string str):
-                        Module(module),OutputPath(str){};
+                    const std::string str,bool dump):
+                        Module(module),OutputPath(str),dumpflag(dump){};
                 ~Context(){};
                 std::shared_ptr<llvm::Module> Module;
                 const std::string OutputPath;
+                const bool dumpflag;
         };
 
 
