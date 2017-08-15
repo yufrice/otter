@@ -7,13 +7,16 @@
 #include <otterc.hpp>
 
 
+namespace {
+    static llvm::cl::opt<std::string> InputFilename(llvm::cl::Positional, llvm::cl::desc("<input file>"));
+    static llvm::cl::opt<std::string> OutputFilename("o", llvm::cl::desc("Place the output into <file>."), llvm::cl::value_desc("file"), llvm::cl::init("a.out"));
+}
+
 int main(int argc, char** argv) {
     using namespace boost::spirit;
     using namespace otter;
     namespace fs = std::experimental::filesystem;
 
-    static llvm::cl::opt<std::string> InputFilename(llvm::cl::Positional, llvm::cl::desc("<input file>"));
-    static llvm::cl::opt<std::string> OutputFilename("o", llvm::cl::desc("Place the output into <file>."), llvm::cl::value_desc("file"), llvm::cl::init("a.out"));
     llvm::cl::ParseCommandLineOptions(argc, argv);
     try {
         std::ostringstream Input(InputFilename.c_str());

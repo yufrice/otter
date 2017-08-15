@@ -156,10 +156,10 @@ namespace otter {
                     llvm::Type* type;
                     std::string format;
                     if(auto args = rawCall->Args.at(0)){
-                        if(detail::sharedIsa<identifierAST>(args)){
+                        if(detail::sharedIsa<numberAST>(args) || detail::sharedIsa<identifierAST>(args)){
+                            FunctionType* func_type = FunctionType::get(Type::getInt32Ty(context.get()), PointerType::get(llvm::Type::getInt8Ty(context.get()),0), true);
+                            Function* pFunc = dyn_cast<Function>(this->Module->getOrInsertFunction("printf", func_type));
                             if(auto rawID = detail::sharedCast<identifierAST>(args)){
-                                FunctionType* func_type = FunctionType::get(Type::getInt32Ty(context.get()), PointerType::get(llvm::Type::getInt8Ty(context.get()),0), true);
-                                Function* pFunc = dyn_cast<Function>(this->Module->getOrInsertFunction("printf", func_type));
                                 auto gvTable = this->Module->getValueSymbolTable();
                                 if(auto id = gvTable.lookup(rawID->Ident)){
                                     val = id;
@@ -175,7 +175,15 @@ namespace otter {
                                 if(val == nullptr){
                                     throw std::string(rawID->Ident + " was not declar");
                                 }
+                            }else if(auto rawNum = detail::sharedCast<numberAST>(args)){
+                                type = detail::type2type(rawNum->Type,this->context.get());
+                                val = detail::constantGet(args,this->context.get());
+                            }
+                            if(type->getTypeID() == 15){
+                                detail::stdOutType(type->getPointerElementType(),format);
+                            }else{
                                 detail::stdOutType(type,format);
+                            }
                             llvm::Value* fInst;
                             if(!this->context.resolveFormat(format)){
                                 fInst = Builder->CreateGlobalStringPtr(format,
@@ -190,14 +198,17 @@ namespace otter {
                             }
                         
                             std::vector<Value*> argValue(1,fInst);
-                            if(type->getPointerElementType()->getTypeID() == 14){
-                                argValue.push_back(val);
-                            }else{
-                                auto loadInst = dyn_cast<LoadInst>(addModuleInst(new LoadInst(val),this->context.getCFunc()));
-                                argValue.push_back(loadInst);
+                            if(detail::sharedIsa<identifierAST>(args)){
+                                if(type->getPointerElementType()->getTypeID() == 14){
+                                    argValue.push_back(val);
+                                }else{
+                                    auto loadInst = dyn_cast<LoadInst>(addModuleInst(new LoadInst(val),this->context.getCFunc()));
+                                    argValue.push_back(loadInst);
+                                }
+                            }else if(detail::sharedIsa<numberAST>(args)){
+                                    argValue.push_back(val);
                             }
                             return CallInst::Create(pFunc, argValue);
-                            }
                         }else if(detail::sharedIsa<stringAST>(args)){
                             if(auto rawStr = detail::sharedCast<stringAST>(args)){
                                 FunctionType* func_type = FunctionType::get(Type::getInt32Ty(context.get()), PointerType::get(llvm::Type::getInt8Ty(context.get()),0), false);
@@ -347,7 +358,7 @@ namespace otter {
             } else if (detail::sharedIsa<binaryExprAST>(var->Val)) {
                 constant = GeneratorGlobalValue(var->Val,var->Type,vTable);
             } else if (detail::sharedIsa<numberAST>(var->Val)) {
-                constant = detail::constantGet(std::move(var->Val), var->Type,
+                constant = detail::constantGet(std::move(var->Val),
                                            context.get());
             }
             return this->Builder->CreateAlloca(detail::type2type(var->Type,context.get()),constant, var->Name);
@@ -380,7 +391,7 @@ namespace otter {
                 }
                 throw std::string(rawVal->Ident + " was not declar");
             } else if (detail::sharedIsa<numberAST>(var)) {
-                return detail::constantGet(std::move(var), type,
+                return detail::constantGet(std::move(var), 
                                            context.get());
             } else if (auto rawVal = detail::sharedCast<binaryExprAST>(var)) {
                             return addModuleInst(BinaryOperator::Create(detail::op2op(rawVal->Op,type),

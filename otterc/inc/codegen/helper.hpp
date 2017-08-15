@@ -26,16 +26,8 @@ namespace otter {
             }
 
             decltype(auto) constantGet(std::shared_ptr<ast::baseAST> ast,
-                                       ast::TypeID type,
                                        auto& context) -> llvm::Value* {
                 if (auto rawVal = sharedCast<ast::numberAST>(ast)) {
-                    if(rawVal->Type != type){
-                        if (rawVal->Type == ast::TypeID::Int) {
-                            throw std::string("invalid conversion from 'Int' to 'Double'");
-                        }else{
-                            throw std::string("invalid conversion from 'Double' to 'Int'");
-                        }
-                    }
                     if (rawVal->Type == ast::TypeID::Int) {
                         auto valueType = llvm::Type::getInt32Ty(context);
                         return llvm::ConstantInt::getSigned(valueType,
@@ -64,14 +56,13 @@ namespace otter {
                 }
             }
 
-            decltype(auto) stdOutType = [](llvm::Type*& Type,std::string& format){
-                    if(Type->getPointerElementType()->getTypeID() == 14){
+            decltype(auto) stdOutType = [](llvm::Type* Type,std::string& format){
+                    if(Type->getTypeID() == 14){
                         format = "%s\n";
-                    }else if(Type->getPointerElementType()->getTypeID() == 11){
+                    }else if(Type->getTypeID() == 11){
                         format = "%d\n";
-                    }else if(Type->getPointerElementType()->getTypeID() == 3){
+                    }else if(Type->getTypeID() == 3){
                         format = "%lf\n";
-                    }else if(Type->getPointerElementType()->getTypeID() == 12){
                     }
             };
 
