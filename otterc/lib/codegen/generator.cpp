@@ -88,7 +88,9 @@ namespace otter {
                 if (detail::sharedIsa<numberAST>(var->Val)) {
                     if(auto rawNum = detail::sharedCast<numberAST>(var->Val)){
                         if(var->Type != rawNum->Type){
-                            throw std::string("invaild conversion : ") + var->Name;
+                            throw detail::typeError("invConv", 
+                                ast::getType(var->Type),
+                                ast::getType(rawNum->Type), var->Name);
                         }
                         init = rawNum->Val;
                     }
@@ -358,8 +360,13 @@ namespace otter {
                         throw std::string(rawID->Ident + " was not declar");
                     }
                     if(constant->getType()->getPointerElementType() != 
-                            detail::type2type(var->Type, this->context.get())){
-                        throw std::string("invaild conversion : ") + var->Name;
+                        detail::type2type(var->Type, this->context.get())){
+                                throw detail::typeError("invConv",
+                                    ast::getType(
+                                        detail::type2type(constant->getType()->getPointerElementType(),
+                                            this->context.get())),
+                                    ast::getType(var->Type),
+                                    var->Name);
                     }
                 }
             } else if (detail::sharedIsa<binaryExprAST>(var->Val)) {
@@ -393,14 +400,22 @@ namespace otter {
                 if(vTable != nullptr){
                     if(auto id = vTable->lookup(rawVal->Ident)){
                         if(id->getType()->getPointerElementType() != detail::type2type(type, this->context.get())){
-                            throw std::string("invaild conversion : ") + rawVal->Ident;
+                            throw detail::typeError("invConv", 
+                                ast::getType(
+                                    detail::type2type(id->getType()->getPointerElementType(),
+                                        this->context.get())),
+                                ast::getType(type),rawVal->Ident);
                         }
                         return id;
                     }
                 }
                 if(auto id = this->Module->getValueSymbolTable().lookup(rawVal->Ident)){
                         if(id->getType()->getPointerElementType() != detail::type2type(type, this->context.get())){
-                            throw std::string("invaild conversion : ") + rawVal->Ident;
+                            throw detail::typeError("invConv", 
+                                ast::getType(
+                                    detail::type2type(id->getType()->getPointerElementType(),
+                                        this->context.get())),
+                                ast::getType(type),rawVal->Ident);
                         }
                     return addModuleInst(new LoadInst(id,""),this->context.getCFunc());
                 }

@@ -35,21 +35,28 @@ namespace otter {
                         if ((var->Type != ast::TypeID::Double) &&
                             (var->Type != ast::TypeID::Int)) {
                                 throw std::string(
-                                "invalid conversion from 'Digit' to " + var->Name);
+                                "invalid conversion from '") + 
+                                    ast::getType(rawPtr->Type) +
+                                    std::string("' to '") +
+                                    ast::getType(var->Type) +
+                                    std::string("' : " + var->Name);
                         }
                         if (var->Type != rawPtr->Type) {
-                            if(var->Type == ast::TypeID::Double){
-                                throw std::string("invaild conversion 'Int' to 'Double' : " + var->Name);
-                            }else{
-                                throw std::string("invaild conversion 'Double' to 'Int' : " + var->Name);
-                            }
+                                throw std::string(
+                                "invalid conversion from '") + 
+                                    ast::getType(rawPtr->Type) +
+                                    std::string("' to '") +
+                                    ast::getType(var->Type) +
+                                    std::string("' : " + var->Name);
                         }
                     } else if (auto rawPtr =
                                dynamic_cast<ast::binaryExprAST*>(ptr)) {
                         if ((var->Type != ast::TypeID::Double) &&
                             (var->Type != ast::TypeID::Int)) {
-                            throw std::string(
-                                "invalid conversion from 'Digit' to " + var->Name);
+                                throw std::string(
+                                "invalid conversion from '") + 
+                                    ast::getType(var->Type) +
+                                    std::string("' : " + var->Name);
                         }
                     } else if (auto rawPtr = dynamic_cast<ast::functionAST*>(ptr)) {
                         this->checkType(rawPtr->Statements);

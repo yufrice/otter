@@ -51,7 +51,7 @@ namespace otter {
                     return llvm::Type::getInt8Ty(context);
                 }
             }
-            decltype(auto) type2type(llvm::Type*& type,auto& context){
+            decltype(auto) type2type(llvm::Type* type,auto& context){
                 if(type == llvm::Type::getInt32Ty(context)){
                     return ast::TypeID::Int;
                 }else if(type == llvm::Type::getDoubleTy(context)){
@@ -78,6 +78,20 @@ namespace otter {
                     return "realFormat";
                 }
             };
+
+            template<typename... Str>
+            decltype(auto) typeError (std::string errType,const Str... str)
+                    -> std::string{
+                std::vector<std::string> strs = {str...};
+                if(errType == "invConv" && strs.size() == 3){
+                        return std::string("invalid conversion from '") +
+                        strs.at(0) +
+                        std::string("' to '") +
+                        strs.at(1) +
+                        std::string("' : ") +
+                        strs.at(2);
+                }
+            }
 
             namespace{
                 decltype(auto) equalPair = [](const auto &pair,const auto& str1, const auto& str2){

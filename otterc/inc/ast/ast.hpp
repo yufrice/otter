@@ -30,6 +30,19 @@ namespace otter {
         };
 
         enum struct TypeID { Unit, Int, Double, String, Nil };
+        decltype(auto) getType = [](TypeID type){
+            if(type == TypeID::Unit){
+                return "Unit";
+            }else if(type == TypeID::Int){
+                return "Int";
+            }else if(type == TypeID::Double){
+                return "Double";
+            }else if(type == TypeID::String){
+                return "String";
+            }else if(type == TypeID::Nil){
+                return "Nil";
+            }
+        };
 
         struct baseAST {
            private:
