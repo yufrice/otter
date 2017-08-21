@@ -4,7 +4,7 @@ namespace otter {
     namespace semantics {
         void preCheck::check() {
             this->checkOverLap();
-            this->checkType();
+            this->checkType(this->Module->Stmt);
         }
         void preCheck::checkOverLap() {
             for (auto stmt : this->Module->Stmt) {
@@ -21,36 +21,39 @@ namespace otter {
             }
         }
 
-        void preCheck::checkType() {
-            for (auto stmt: this->Module->Stmt) {
+        void preCheck::checkType(const std::vector<std::shared_ptr<ast::baseAST>> stmts) {
+            for (auto stmt: stmts){
                 if(auto var = std::dynamic_pointer_cast<ast::variableAST>(stmt)){
 
-                auto ptr = var->Val.get();
-                if (auto rawPtr = dynamic_cast<ast::stringAST*>(ptr)) {
-                    if (var->Type != ast::TypeID::String) {
-                        throw std::string(
-                            "invalid conversion from 'String' to " + var->Name);
-                    }
-                } else if (auto rawPtr = dynamic_cast<ast::numberAST*>(ptr)) {
-                    if ((var->Type != ast::TypeID::Double) &&
-                        (var->Type != ast::TypeID::Int)) {
-                        throw std::string(
-                            "invalid conversion from 'Digit' to " + var->Name);
-                    }
-                    if (var->Type == ast::TypeID::Int) {
-                        if (0 < rawPtr->Val - (int)rawPtr->Val) {
-                            std::cout << "warning : " << var->Name
-                                      << " is Double" << std::endl;
+                    auto ptr = var->Val.get();
+                    if (auto rawPtr = dynamic_cast<ast::stringAST*>(ptr)) {
+                        if (var->Type != ast::TypeID::String) {
+                            throw std::string(
+                                "invalid conversion from 'String' to " + var->Name);
                         }
-                    }
-                } else if (auto rawPtr =
+                    } else if (auto rawPtr = dynamic_cast<ast::numberAST*>(ptr)) {
+                        if ((var->Type != ast::TypeID::Double) &&
+                            (var->Type != ast::TypeID::Int)) {
+                                throw std::string(
+                                "invalid conversion from 'Digit' to " + var->Name);
+                        }
+                        if (var->Type != rawPtr->Type) {
+                            if(var->Type == ast::TypeID::Double){
+                                throw std::string("invaild conversion 'Int' to 'Double' : " + var->Name);
+                            }else{
+                                throw std::string("invaild conversion 'Double' to 'Int' : " + var->Name);
+                            }
+                        }
+                    } else if (auto rawPtr =
                                dynamic_cast<ast::binaryExprAST*>(ptr)) {
-                    if ((var->Type != ast::TypeID::Double) &&
-                        (var->Type != ast::TypeID::Int)) {
-                        throw std::string(
-                            "invalid conversion from 'Digit' to " + var->Name);
-                }
-                    }
+                        if ((var->Type != ast::TypeID::Double) &&
+                            (var->Type != ast::TypeID::Int)) {
+                            throw std::string(
+                                "invalid conversion from 'Digit' to " + var->Name);
+                        }
+                    } else if (auto rawPtr = dynamic_cast<ast::functionAST*>(ptr)) {
+                        this->checkType(rawPtr->Statements);
+                    } 
                 }
             }
         }

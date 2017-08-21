@@ -19,7 +19,7 @@ namespace otter {
 
             void check();
             void checkOverLap();
-            void checkType();
+            void checkType(const std::vector<std::shared_ptr<ast::baseAST>>);
             void checkIdAssign(auto&);
         };
 

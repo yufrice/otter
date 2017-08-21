@@ -25,9 +25,12 @@ namespace otter {
                 return std::dynamic_pointer_cast<Type>(ptr);
             }
 
-            decltype(auto) constantGet(std::shared_ptr<ast::baseAST> ast,
+            decltype(auto) constantGet(ast::TypeID &type, std::shared_ptr<ast::baseAST> ast,
                                        auto& context) -> llvm::Value* {
                 if (auto rawVal = sharedCast<ast::numberAST>(ast)) {
+                    if(type != rawVal->Type){
+                        throw std::string("invaild conversion");
+                    }
                     if (rawVal->Type == ast::TypeID::Int) {
                         auto valueType = llvm::Type::getInt32Ty(context);
                         return llvm::ConstantInt::getSigned(valueType,

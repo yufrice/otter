@@ -87,6 +87,9 @@ namespace otter {
                 double init = 0;
                 if (detail::sharedIsa<numberAST>(var->Val)) {
                     if(auto rawNum = detail::sharedCast<numberAST>(var->Val)){
+                        if(var->Type != rawNum->Type){
+                            throw std::string("invaild conversion : ") + var->Name;
+                        }
                         init = rawNum->Val;
                     }
                 }
@@ -177,7 +180,7 @@ namespace otter {
                                 }
                             }else if(auto rawNum = detail::sharedCast<numberAST>(args)){
                                 type = detail::type2type(rawNum->Type,this->context.get());
-                                val = detail::constantGet(args,this->context.get());
+                                val = detail::constantGet(rawNum->Type, args,this->context.get());
                             }
                             if(type->getTypeID() == 15){
                                 detail::stdOutType(type->getPointerElementType(),format);
@@ -354,14 +357,20 @@ namespace otter {
                     }else{
                         throw std::string(rawID->Ident + " was not declar");
                     }
+                    if(constant->getType()->getPointerElementType() != 
+                            detail::type2type(var->Type, this->context.get())){
+                        throw std::string("invaild conversion : ") + var->Name;
+                    }
                 }
             } else if (detail::sharedIsa<binaryExprAST>(var->Val)) {
                 constant = GeneratorGlobalValue(var->Val,var->Type,vTable);
             } else if (detail::sharedIsa<numberAST>(var->Val)) {
-                constant = detail::constantGet(std::move(var->Val),
+                constant = detail::constantGet(var->Type, std::move(var->Val),
                                            context.get());
             }
-            return this->Builder->CreateAlloca(detail::type2type(var->Type,context.get()),constant, var->Name);
+            auto alloca = this->Builder->CreateAlloca(detail::type2type(var->Type,context.get()), 0, var->Name);
+            this->Builder->CreateStore(constant, alloca);
+            return vTable->lookup(var->Name);
         }
 
         Value* Generator::generateString(std::shared_ptr<variableAST> var) {
@@ -372,7 +381,9 @@ namespace otter {
                 auto Name = var->Name;
                 Constant* strCons = ConstantDataArray::getString(
                     context.get(), rawStr->Str);
-                return this->Builder->CreateAlloca(Type, strCons, Name);
+                auto alloca = this->Builder->CreateAlloca(Type, 0, Name);
+                return this->Builder->CreateStore(dyn_cast<llvm::Value>(strCons), alloca);
+                return  alloca;
             }
         }
 
@@ -381,18 +392,22 @@ namespace otter {
             if (auto rawVal = detail::sharedCast<identifierAST>(var)) {
                 if(vTable != nullptr){
                     if(auto id = vTable->lookup(rawVal->Ident)){
-                    //return addModuleInst(new LoadInst(id,""),this->context.getCFunc());
+                        if(id->getType()->getPointerElementType() != detail::type2type(type, this->context.get())){
+                            throw std::string("invaild conversion : ") + rawVal->Ident;
+                        }
                         return id;
                     }
                 }
                 if(auto id = this->Module->getValueSymbolTable().lookup(rawVal->Ident)){
+                        if(id->getType()->getPointerElementType() != detail::type2type(type, this->context.get())){
+                            throw std::string("invaild conversion : ") + rawVal->Ident;
+                        }
                     return addModuleInst(new LoadInst(id,""),this->context.getCFunc());
-                    //return id;
                 }
                 throw std::string(rawVal->Ident + " was not declar");
             } else if (detail::sharedIsa<numberAST>(var)) {
-                return detail::constantGet(std::move(var), 
-                                           context.get());
+                return detail::constantGet(type, std::move(var), 
+                                           this->context.get());
             } else if (auto rawVal = detail::sharedCast<binaryExprAST>(var)) {
                             return addModuleInst(BinaryOperator::Create(detail::op2op(rawVal->Op,type),
                                 GeneratorGlobalValue(rawVal->Lhs, type,std::move(vTable)),

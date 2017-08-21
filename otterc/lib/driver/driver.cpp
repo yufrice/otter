@@ -66,9 +66,8 @@ namespace otter {
         pm.run(*(this->Context->Module));
         raw_stream.flush();
 
-        std::string const command = "clang -o " + this->Context->OutputPath + " out.obj";
+        std::string const command = "cc -o " + this->Context->OutputPath + " out.obj";
         std::system(command.c_str());
-        std::system("rm out.obj");
     }
 
     } // namespace driver 
