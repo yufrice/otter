@@ -53,6 +53,10 @@ namespace otter {
                         }
                     } else if (auto rawPtr = dynamic_cast<ast::functionAST*>(ptr)) {
                         this->checkType(rawPtr->Statements);
+                        if(rawPtr->Statements.empty() && (var->Type != ast::TypeID::Unit)){
+                            throw std::string("no return statement in function returning non-void : ")
+                                    + var->Name;
+                        }
                     } 
                 }
             }
