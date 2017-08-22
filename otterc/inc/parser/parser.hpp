@@ -41,6 +41,7 @@ namespace otter {
         x3::rule<class type, TypeID> const type("type");
         x3::rule<class value, std::shared_ptr<baseAST>> const value("value");
         x3::rule<class string, std::string> const string("string");
+        x3::rule<class _bool, std::shared_ptr<boolAST>> const _bool("_bool");
 
         auto const id_def =
             x3::lexeme[((x3::alpha | '_') >> *(x3::alnum | '_'))];
@@ -86,13 +87,15 @@ namespace otter {
 
         auto const string_def = x3::lit('"') >>
                                 +((x3::char_)-x3::lit('"')) >> x3::lit('"');
+        auto const _bool_def = x3::bool_[detail::sharedAssign<ast::boolAST>()];
         auto const value_def = string[detail::sharedAssign<stringAST>()];
 
         auto const type_def =
-            ":" >> (x3::lit("int")[detail::assign(TypeID::Int)] |
-                    x3::lit("double")[detail::assign(TypeID::Double)] |
-                    x3::lit("string")[detail::assign(TypeID::String)] |
-                    x3::lit("unit")[detail::assign(TypeID::Unit)]);
+            ":" >> (x3::string("int")[detail::assign(TypeID::Int)] |
+                    x3::string("double")[detail::assign(TypeID::Double)] |
+                    x3::string("string")[detail::assign(TypeID::String)] |
+                    x3::string("bool")[detail::assign(TypeID::Bool)] |
+                    x3::string("unit")[detail::assign(TypeID::Unit)]);
 
         auto const variable_def = x3::lit("let") >>
                                   id[detail::sharedAssign<variableAST>()] >>
@@ -102,8 +105,8 @@ namespace otter {
                                    function[detail::addAST()]);
 
 
-        auto const funcCall_def = id[detail::sharedAssign<funcCallAST>()] >>
-                                  x3::lit('(') >>
+        auto const funcCall_def = x3::lit('(') >>
+                                   id[detail::sharedAssign<funcCallAST>()] >>
                                   *(funcCall[detail::addAST()] | string[detail::addAST<stringAST>()] |
                                     addExpr[detail::addAST()]) >> x3::lit(')');
 
@@ -117,6 +120,7 @@ namespace otter {
 
         BOOST_SPIRIT_DEFINE(value,
                             string,
+                            _bool,
                             type,
                             funcCall,
                             expr,

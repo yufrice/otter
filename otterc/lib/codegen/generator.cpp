@@ -258,6 +258,10 @@ namespace otter {
                     Type = FunctionType::get(
                         PointerType::get(Type::getInt8Ty(context.get()), 0),
                         argsRef, false);
+                } else if (var->Type == TypeID::Bool) {
+                    Type = FunctionType::get(
+                        llvm::Type::getInt1Ty(context.get()), argsRef,
+                        false);
                 } else if (var->Type == TypeID::Unit) {
                     Type = FunctionType::get(
                         llvm::Type::getVoidTy(context.get()), argsRef,
@@ -282,6 +286,11 @@ namespace otter {
                     ret = GeneratorStatement(st, func);
                 }
                 this->context.setCFunc(false);
+                if(ret->getType() != detail::type2type(var->Type,this->context.get())){
+                    throw detail::typeError("invConv", getType(
+                        detail::type2type(ret->getType(),this->context.get())),
+                        getType(var->Type),"ret");
+                }
                 if (var->Type == TypeID::Unit) {
                     Builder->CreateRetVoid();
                 } else if(var->Type == TypeID::Int){
@@ -325,8 +334,7 @@ namespace otter {
                 return value;
             } else if (detail::sharedIsa<numberAST>(stmt)) {
                 if(auto rawNum = detail::sharedCast<numberAST>(stmt)){
-                if (llvm::Type::getDoubleTy(context.get()) ==
-                    func->getReturnType()) {
+                if (ast::TypeID::Double == rawNum->Type) {
                         return llvm::ConstantFP::get(func->getReturnType() , rawNum->Val);
                     }else{
                         return llvm::ConstantInt::get(func->getReturnType() , rawNum->Val);

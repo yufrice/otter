@@ -18,6 +18,7 @@ namespace otter {
             ModuleID,
             NumberID,
             StringID,
+            BoolID,
             IdentifierID,
             ExprID,
             MonoExprID,
@@ -29,7 +30,7 @@ namespace otter {
             WhileStatementID,
         };
 
-        enum struct TypeID { Unit, Int, Double, String, Nil };
+        enum struct TypeID { Unit, Int, Double, String, Bool, Nil };
         decltype(auto) getType = [](TypeID type){
             if(type == TypeID::Unit){
                 return "Unit";
@@ -39,6 +40,8 @@ namespace otter {
                 return "Double";
             }else if(type == TypeID::String){
                 return "String";
+            }else if(type == TypeID::Bool){
+                return "Bool";
             }else if(type == TypeID::Nil){
                 return "Nil";
             }
@@ -73,6 +76,15 @@ namespace otter {
             }
 
             auto getVal() -> std::string& { return this->Str; }
+        };
+
+        struct boolAST : public baseAST {
+            bool Bl;
+
+            boolAST(bool bl) : baseAST(AstID::BoolID), Bl(bl){};
+            static inline bool classof(baseAST const* base) {
+                return base->getID() == AstID::BoolID;
+            }
         };
 
         struct numberAST : public baseAST {

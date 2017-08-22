@@ -54,8 +54,16 @@ namespace otter {
             decltype(auto) type2type(llvm::Type* type,auto& context){
                 if(type == llvm::Type::getInt32Ty(context)){
                     return ast::TypeID::Int;
+                }else if(type->getTypeID() == 11){
+                    return ast::TypeID::Int;
+                }else if(type == llvm::Type::getInt1Ty(context)){
+                    return ast::TypeID::Bool;
                 }else if(type == llvm::Type::getDoubleTy(context)){
                     return ast::TypeID::Double;
+                }else if(type->getTypeID() == 6){
+                    return ast::TypeID::Double;
+                }else if(type->getTypeID() == 14){
+                    return ast::TypeID::String;
                 }
             }
 
