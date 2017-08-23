@@ -25,11 +25,30 @@ namespace otter {
                 return std::dynamic_pointer_cast<Type>(ptr);
             }
 
+            template<typename... Str>
+            decltype(auto) typeError (std::string errType,const Str... str)
+                    -> std::string{
+                std::vector<std::string> strs = {str...};
+                if(errType == "invConv" && strs.size() == 3){
+                        return std::string("invalid conversion from '") +
+                        strs.at(0) +
+                        std::string("' to '") +
+                        strs.at(1) +
+                        std::string("' : ") +
+                        strs.at(2);
+                }else if(errType == "noValue" && strs.size() == 1){
+                    return strs.at(0) + std::string(" has no Value");
+                }
+            }
+
             decltype(auto) constantGet(ast::TypeID &type, std::shared_ptr<ast::baseAST> ast,
                                        auto& context) -> llvm::Value* {
                 if (auto rawVal = sharedCast<ast::numberAST>(ast)) {
                     if(type != rawVal->Type){
-                        throw std::string("invaild conversion");
+                        throw detail::typeError("invConv", 
+                            ast::getType(rawVal->Type),
+                            ast::getType(type),
+                            std::string(""));
                     }
                     if (rawVal->Type == ast::TypeID::Int) {
                         auto valueType = llvm::Type::getInt32Ty(context);
@@ -87,19 +106,18 @@ namespace otter {
                 }
             };
 
-            template<typename... Str>
-            decltype(auto) typeError (std::string errType,const Str... str)
-                    -> std::string{
-                std::vector<std::string> strs = {str...};
-                if(errType == "invConv" && strs.size() == 3){
-                        return std::string("invalid conversion from '") +
-                        strs.at(0) +
-                        std::string("' to '") +
-                        strs.at(1) +
-                        std::string("' : ") +
-                        strs.at(2);
+            decltype(auto) pointerType = [](llvm::Type* type)
+                        -> llvm::Type* {
+                if(type->isPointerTy()){
+                    if(type->getPointerElementType()->getTypeID() == 12){
+                        auto fType = llvm::dyn_cast<llvm::FunctionType>(type->getPointerElementType());
+                        return fType->getReturnType();
+                    }
+                    return type->getPointerElementType();
+                }else{
+                    return type;
                 }
-            }
+            };
 
             namespace{
                 decltype(auto) equalPair = [](const auto &pair,const auto& str1, const auto& str2){

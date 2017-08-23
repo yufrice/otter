@@ -96,7 +96,14 @@ namespace otter {
                 return base->getID() == AstID::NumberID;
             }
 
-            auto getVal() -> double { return this->Val; }
+            decltype(auto) getVal() {
+                std::variant<int,double> val;
+                if(Type == TypeID::Int){
+                    return val = (int)Val;
+                }else if(Type == TypeID::Double){
+                    return val = Val;
+                }
+            }
         };
 
         struct binaryExprAST : public baseAST {

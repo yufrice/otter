@@ -177,6 +177,11 @@ namespace otter {
                                         type = val->getType();
                                     }
                                 }
+                                if(type->getPointerElementType()->isFunctionTy()){
+                                    val = addModuleInst(new PtrToIntInst(val, detail::pointerType(type)),
+                                                                this->context.getCFunc());
+                                    type = detail::pointerType(type);
+                                }
                                 if(val == nullptr){
                                     throw std::string(rawID->Ident + " was not declar");
                                 }
@@ -184,11 +189,11 @@ namespace otter {
                                 type = detail::type2type(rawNum->Type,this->context.get());
                                 val = detail::constantGet(rawNum->Type, args,this->context.get());
                             }
-                            if(type->getTypeID() == 15){
-                                detail::stdOutType(type->getPointerElementType(),format);
-                            }else{
-                                detail::stdOutType(type,format);
-                            }
+                            //if(type->getTypeID() == 15){
+                                //detail::stdOutType(type->getPointerElementType(),format);
+                            //}else{
+                                detail::stdOutType(detail::pointerType(type),format);
+                            //}
                             llvm::Value* fInst;
                             if(!this->context.resolveFormat(format)){
                                 fInst = Builder->CreateGlobalStringPtr(format,
@@ -205,8 +210,7 @@ namespace otter {
                             std::vector<Value*> argValue(1,fInst);
                             if(detail::sharedIsa<identifierAST>(args)){
                                 if(type->getTypeID() == 11 || type->getTypeID() == 3){
-                                    auto loadInst = dyn_cast<LoadInst>(addModuleInst(new LoadInst(val),this->context.getCFunc()));
-                                    argValue.push_back(loadInst);
+                                    argValue.push_back(val);
                                 }else if(type->getPointerElementType()->getTypeID() == 14){
                                     argValue.push_back(val);
                                 }else{
@@ -374,11 +378,11 @@ namespace otter {
                     }else{
                         throw std::string(rawID->Ident + " was not declar");
                     }
-                    if(constant->getType()->getPointerElementType() != 
+                    if(detail::pointerType(constant->getType()) != 
                         detail::type2type(var->Type, this->context.get())){
                                 throw detail::typeError("invConv",
                                     ast::getType(
-                                        detail::type2type(constant->getType()->getPointerElementType(),
+                                        detail::type2type(detail::pointerType(constant->getType()),
                                             this->context.get())),
                                     ast::getType(var->Type),
                                     var->Name);
@@ -389,6 +393,9 @@ namespace otter {
             } else if (detail::sharedIsa<numberAST>(var->Val)) {
                 constant = detail::constantGet(var->Type, std::move(var->Val),
                                            context.get());
+            }
+            if(constant == nullptr){
+                throw "";
             }
             auto alloca = this->Builder->CreateAlloca(detail::type2type(var->Type,context.get()), 0, var->Name);
             this->Builder->CreateStore(constant, alloca);
@@ -414,7 +421,7 @@ namespace otter {
             if (auto rawVal = detail::sharedCast<identifierAST>(var)) {
                 if(vTable != nullptr){
                     if(auto id = vTable->lookup(rawVal->Ident)){
-                        if(id->getType()->getPointerElementType() != detail::type2type(type, this->context.get())){
+                        if(detail::pointerType(id->getType()) != detail::type2type(type, this->context.get())){
                             throw detail::typeError("invConv", 
                                 ast::getType(
                                     detail::type2type(id->getType()->getPointerElementType(),
@@ -425,12 +432,15 @@ namespace otter {
                     }
                 }
                 if(auto id = this->Module->getValueSymbolTable().lookup(rawVal->Ident)){
-                        if(id->getType()->getPointerElementType() != detail::type2type(type, this->context.get())){
+                        if(detail::pointerType(id->getType()) != detail::type2type(type, this->context.get())){
                             throw detail::typeError("invConv", 
                                 ast::getType(
                                     detail::type2type(id->getType()->getPointerElementType(),
                                         this->context.get())),
                                 ast::getType(type),rawVal->Ident);
+                        }
+                        if(id->getType()->getPointerElementType()->isFunctionTy()){
+                            return addModuleInst(new PtrToIntInst(id,detail::pointerType(id->getType())),this->context.getCFunc());
                         }
                     return addModuleInst(new LoadInst(id,""),this->context.getCFunc());
                 }

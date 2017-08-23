@@ -20,7 +20,10 @@ namespace {
                                        llvm::cl::desc("Display bitcode."),
                                        llvm::cl::init(false),
                                        llvm::cl::cat(CompilerCategory));
-    ;
+    static llvm::cl::opt<bool> DebugOpt("debug",
+                                       llvm::cl::desc("Display debug log."),
+                                       llvm::cl::init(false),
+                                       llvm::cl::cat(CompilerCategory));
 }
 
 int main(int argc, char** argv) {
@@ -69,7 +72,11 @@ int main(int argc, char** argv) {
                 context::Context(std::move(codeGen->generatorModule(result)),
                                  OutputFilename.c_str(), DumpOpt);
             auto driver = driver::Driver(context);
-            driver.BinaryOut();
+            if(DebugOpt){
+                context.Module->dump();
+            }else{
+                driver.BinaryOut();
+            }
 
         } else {
             /* ToDo
