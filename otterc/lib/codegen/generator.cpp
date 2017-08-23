@@ -204,7 +204,10 @@ namespace otter {
                         
                             std::vector<Value*> argValue(1,fInst);
                             if(detail::sharedIsa<identifierAST>(args)){
-                                if(type->getPointerElementType()->getTypeID() == 14){
+                                if(type->getTypeID() == 11 || type->getTypeID() == 3){
+                                    auto loadInst = dyn_cast<LoadInst>(addModuleInst(new LoadInst(val),this->context.getCFunc()));
+                                    argValue.push_back(loadInst);
+                                }else if(type->getPointerElementType()->getTypeID() == 14){
                                     argValue.push_back(val);
                                 }else{
                                     auto loadInst = dyn_cast<LoadInst>(addModuleInst(new LoadInst(val),this->context.getCFunc()));
@@ -240,6 +243,9 @@ namespace otter {
                     } else if (argType == TypeID::Double) {
                         typeArgs.emplace_back(
                             Type::getDoubleTy(context.get()));
+                    } else if (argType == TypeID::Bool) {
+                        typeArgs.emplace_back(
+                            Type::getInt1Ty(context.get()));
                     } else if (argType == TypeID::String) {
                         typeArgs.emplace_back(PointerType::get(
                             Type::getInt8Ty(context.get()), 0));
@@ -286,17 +292,18 @@ namespace otter {
                     ret = GeneratorStatement(st, func);
                 }
                 this->context.setCFunc(false);
-                if(ret->getType() != detail::type2type(var->Type,this->context.get())){
-                    throw detail::typeError("invConv", getType(
-                        detail::type2type(ret->getType(),this->context.get())),
-                        getType(var->Type),"ret");
-                }
                 if (var->Type == TypeID::Unit) {
                     Builder->CreateRetVoid();
+                    return func;
                 } else if(var->Type == TypeID::Int){
                     Builder->CreateRet(ret);
                 } else {
                     Builder->CreateRet(ret);
+                }
+                if(ret->getType() != detail::type2type(var->Type,this->context.get())){
+                    throw detail::typeError("invConv", getType(
+                        detail::type2type(ret->getType(),this->context.get())),
+                        getType(var->Type),"ret");
                 }
                 return func;
             }
