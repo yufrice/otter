@@ -178,7 +178,11 @@ namespace otter {
                                     }
                                 }
                                 if(type->getPointerElementType()->isFunctionTy()){
-                                    val = addModuleInst(new PtrToIntInst(val, detail::pointerType(type)),
+                                    //val = addModuleInst(new PtrToIntInst(val, detail::pointerType(type)),
+                                                                //this->context.getCFunc());
+                                    std::vector<llvm::Value*> args;
+                                    val = addModuleInst(CallInst::Create(
+                                        this->Module->getFunction(rawID->Ident), args),
                                                                 this->context.getCFunc());
                                     type = detail::pointerType(type);
                                 }
@@ -440,7 +444,10 @@ namespace otter {
                                 ast::getType(type),rawVal->Ident);
                         }
                         if(id->getType()->getPointerElementType()->isFunctionTy()){
-                            return addModuleInst(new PtrToIntInst(id,detail::pointerType(id->getType())),this->context.getCFunc());
+                                    std::vector<llvm::Value*> args;
+                                    return addModuleInst(CallInst::Create(
+                                        this->Module->getFunction(rawVal->Ident), args),
+                                                                this->context.getCFunc());
                         }
                     return addModuleInst(new LoadInst(id,""),this->context.getCFunc());
                 }
