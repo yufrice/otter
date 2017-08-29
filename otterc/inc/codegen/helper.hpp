@@ -71,17 +71,13 @@ namespace otter {
                 }
             }
             decltype(auto) type2type(llvm::Type* type,auto& context){
-                if(type == llvm::Type::getInt32Ty(context)){
+                if(type->isIntegerTy(32)){
                     return ast::TypeID::Int;
-                //}else if(type->getTypeID() == 11){
-                    //return ast::TypeID::Int;
-                }else if(type == llvm::Type::getInt1Ty(context)){
+                }else if(type->isIntegerTy(1)){
                     return ast::TypeID::Bool;
-                }else if(type == llvm::Type::getDoubleTy(context)){
+                }else if(type->isDoubleTy()){
                     return ast::TypeID::Double;
-                }else if(type->getTypeID() == 6){
-                    return ast::TypeID::Double;
-                }else if(type->getTypeID() == 14){
+                }else if(type->isArrayTy() || type->isIntegerTy(8)){
                     return ast::TypeID::String;
                 }
             }

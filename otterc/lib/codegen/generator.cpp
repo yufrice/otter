@@ -26,6 +26,8 @@ namespace otter {
        }
 
         std::unique_ptr<Module> Generator::generatorModule(const std::shared_ptr<moduleAST> &mod) {
+            auto t1 = llvm::Type::getInt32Ty(this->context.get());
+
             FunctionType* funcType = FunctionType::get(
                 llvm::Type::getVoidTy(context.get()), false);
             Function* mainFunc = Function::Create(
