@@ -341,7 +341,7 @@ namespace otter {
                 type = func->getReturnType();
             }
             if (detail::sharedIsa<funcCallAST>(stmt)) {
-                return addModuleInst(generateCallFunc(stmt,func),true);
+                return addModuleInst(generateCallFunc(stmt,func),this->context.getCFunc());
             } else if (detail::sharedIsa<identifierAST>(stmt)) {
                 auto vTable = func->getValueSymbolTable();
                 auto gvTable = this->Module->getValueSymbolTable();
