@@ -2,6 +2,7 @@
 #define _OTTER_CODEGEN_CONTEXT_HPP_
 
 #include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Type.h>
 
 namespace otter{
     namespace codegen{
@@ -16,6 +17,7 @@ namespace otter{
                 } 
                 FormatCount;
 
+                std::vector<llvm::Type*> argsTypes;
                 bool currentFunc;
                 static llvm::LLVMContext llvmContext;
 
@@ -26,6 +28,10 @@ namespace otter{
                 bool resolveFormat(std::string);
                 void setCFunc(const bool& f){this->currentFunc = f;}
                 bool getCFunc(){return this->currentFunc;}
+
+                void setType(llvm::Type*);
+                llvm::Type* getType();
+                bool clearType();
         };
 
 

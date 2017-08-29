@@ -138,12 +138,20 @@ namespace otter {
 
         CallInst* Generator::generateCallFunc(const std::shared_ptr<baseAST> &expr,const Function* func) {
             std::vector<llvm::Value*> args;
+            if(func == nullptr){
+                func = this->Module->getFunction("main");
+            }
             if (auto rawCall = detail::sharedCast<funcCallAST>(expr)) {
                 if (rawCall->Name == "print") {
                     return generatePrint(expr,func);
                 } else {
+                    for(auto arg = (this->Module->getFunction(rawCall->Name))->arg_begin();
+                            arg != (this->Module->getFunction(rawCall->Name))->arg_end();
+                            ++arg){
+                                this->context.setType(arg->getType());
+                    }
                     for(auto arg : rawCall->Args){
-                        //args.emplace_back(GeneratorStatement(arg,func));
+                        args.emplace_back(GeneratorStatement(arg,func));
                     }
                     return CallInst::Create(
                         this->Module->getFunction(rawCall->Name), args);
@@ -179,14 +187,16 @@ namespace otter {
                                         type = val->getType();
                                     }
                                 }
-                                if(type->getPointerElementType()->isFunctionTy()){
-                                    //val = addModuleInst(new PtrToIntInst(val, detail::pointerType(type)),
+                                if(type->isPointerTy()){
+                                    if(type->getPointerElementType()->isFunctionTy()){
+                                        //val = addModuleInst(new PtrToIntInst(val, detail::pointerType(type)),
                                                                 //this->context.getCFunc());
-                                    std::vector<llvm::Value*> args;
-                                    val = addModuleInst(CallInst::Create(
-                                        this->Module->getFunction(rawID->Ident), args),
+                                        std::vector<llvm::Value*> args;
+                                        val = addModuleInst(CallInst::Create(
+                                            this->Module->getFunction(rawID->Ident), args),
                                                                 this->context.getCFunc());
-                                    type = detail::pointerType(type);
+                                        type = detail::pointerType(type);
+                                    }
                                 }
                                 if(val == nullptr){
                                     throw std::string(rawID->Ident + " was not declar");
@@ -321,40 +331,50 @@ namespace otter {
 
         Value* Generator::GeneratorStatement(std::shared_ptr<baseAST> stmt,
                                              const Function* func) {
+            llvm::Type* type;
+            if(func == this->Module->getFunction("main")){
+                type = this->context.getType();
+                if(type == nullptr){
+                    throw std::string("");
+                }
+            }else{
+                type = func->getReturnType();
+            }
             if (detail::sharedIsa<funcCallAST>(stmt)) {
                 return addModuleInst(generateCallFunc(stmt,func),true);
             } else if (detail::sharedIsa<identifierAST>(stmt)) {
                 auto vTable = func->getValueSymbolTable();
                 auto gvTable = this->Module->getValueSymbolTable();
+                llvm::Value* val;
                 if(auto rawID = detail::sharedCast<identifierAST>(stmt)){
                     if(auto id = vTable->lookup(rawID->Ident)){
-                        return id;
+                        val = id;
                     }else if(auto id = gvTable.lookup(rawID->Ident)){
-                        return id;
+                        val = id;
                     }else{
                         throw std::string(rawID->Ident + " was not declar");
+                    }
+                    if(val->getType()->getPointerElementType()->isFunctionTy()){
+                        std::vector<llvm::Value*> args;
+                        return addModuleInst(CallInst::Create(
+                            val, args),
+                           this->context.getCFunc());
+                    }else{
+                        return val;
                     }
                 }
             } else if (detail::sharedIsa<variableAST>(stmt)) {
                 return generateVariable(
                     detail::shared4Shared<variableAST>(stmt),func->getValueSymbolTable());
             } else if (detail::sharedIsa<binaryExprAST>(stmt)) {
-                TypeID type;
-                if (llvm::Type::getDoubleTy(context.get()) ==
-                    func->getReturnType()) {
-                    type = TypeID::Double;
-                } else if (llvm::Type::getInt32Ty(context.get()) ==
-                           func->getReturnType()) {
-                    type = TypeID::Int;
-                }
-                auto value = this->GeneratorGlobalValue(stmt, type,func->getValueSymbolTable());
+                auto value = this->GeneratorGlobalValue(stmt, detail::type2type(type, this->context.get()),func->getValueSymbolTable());
                 return value;
             } else if (detail::sharedIsa<numberAST>(stmt)) {
                 if(auto rawNum = detail::sharedCast<numberAST>(stmt)){
                 if (ast::TypeID::Double == rawNum->Type) {
-                        return llvm::ConstantFP::get(func->getReturnType() , rawNum->Val);
+                        return llvm::ConstantFP::get(llvm::Type::getDoubleTy(this->context.get()), rawNum->Val);
                     }else{
-                        return llvm::ConstantInt::get(func->getReturnType() , rawNum->Val);
+                        return llvm::ConstantInt::get(llvm::Type::getInt32Ty(this->context.get()), rawNum->Val);
                     }
                 }
             } else if (detail::sharedIsa<stringAST>(stmt)) {

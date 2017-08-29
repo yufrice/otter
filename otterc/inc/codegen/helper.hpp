@@ -145,7 +145,6 @@ namespace otter {
                     return llvm::Instruction::FDiv; 
                 }
             };
-
         }  // name space detail
     }      // namespace codegen
 }  // namespace otter
