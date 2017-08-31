@@ -220,20 +220,12 @@ namespace otter {
                             }
                         
                             std::vector<Value*> argValue(1,fInst);
-                            if(detail::sharedIsa<identifierAST>(args)){
-                                if(type->getTypeID() == 11 || type->getTypeID() == 3){
-                                    argValue.push_back(val);
-                                }else if(type->getPointerElementType()->getTypeID() == 14
-                                                || type->getPointerElementType()->getTypeID() == 12
-                                                || type->getPointerElementType()->isIntegerTy(8)){
-                                    argValue.push_back(val);
-                                }else{
-                                    auto loadInst = dyn_cast<LoadInst>(addModuleInst(new LoadInst(val),this->context.getCFunc()));
-                                    argValue.push_back(loadInst);
-                                }
-                            }else if(detail::sharedIsa<numberAST>(args)){
-                                    argValue.push_back(val);
+                            if(detail::sharedIsa<identifierAST>(args) && type->isPointerTy()){
+                                if(type->getPointerElementType()->isIntegerTy(32)
+                                        || type->getPointerElementType()->isDoubleTy())
+                                val = dyn_cast<LoadInst>(addModuleInst(new LoadInst(val),this->context.getCFunc()));
                             }
+                            argValue.push_back(val);
                             return CallInst::Create(pFunc, argValue);
                         }else if(detail::sharedIsa<stringAST>(args)){
                             if(auto rawStr = detail::sharedCast<stringAST>(args)){
