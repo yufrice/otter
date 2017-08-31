@@ -107,7 +107,11 @@ namespace otter {
                 if(type->isPointerTy()){
                     if(type->getPointerElementType()->getTypeID() == 12){
                         auto fType = llvm::dyn_cast<llvm::FunctionType>(type->getPointerElementType());
-                        return fType->getReturnType();
+                        if(fType->getReturnType() -> isPointerTy()){
+                            return fType->getReturnType()->getPointerElementType();
+                        }else{
+                            return fType->getReturnType();
+                        }
                     }
                     return type->getPointerElementType();
                 }else{

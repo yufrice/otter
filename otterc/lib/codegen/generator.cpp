@@ -195,7 +195,6 @@ namespace otter {
                                         val = addModuleInst(CallInst::Create(
                                             this->Module->getFunction(rawID->Ident), args),
                                                                 this->context.getCFunc());
-                                        type = detail::pointerType(type);
                                     }
                                 }
                                 if(val == nullptr){
@@ -205,11 +204,8 @@ namespace otter {
                                 type = detail::type2type(rawNum->Type,this->context.get());
                                 val = detail::constantGet(rawNum->Type, args,this->context.get());
                             }
-                            //if(type->getTypeID() == 15){
-                                //detail::stdOutType(type->getPointerElementType(),format);
-                            //}else{
-                                detail::stdOutType(detail::pointerType(type),format);
-                            //}
+
+                            detail::stdOutType(detail::pointerType(type),format);
                             llvm::Value* fInst;
                             if(!this->context.resolveFormat(format)){
                                 fInst = Builder->CreateGlobalStringPtr(format,
@@ -227,7 +223,8 @@ namespace otter {
                             if(detail::sharedIsa<identifierAST>(args)){
                                 if(type->getTypeID() == 11 || type->getTypeID() == 3){
                                     argValue.push_back(val);
-                                }else if(type->getPointerElementType()->getTypeID() == 14){
+                                }else if(type->getPointerElementType()->getTypeID() == 14
+                                                || type->getPointerElementType()->getTypeID() == 12){
                                     argValue.push_back(val);
                                 }else{
                                     auto loadInst = dyn_cast<LoadInst>(addModuleInst(new LoadInst(val),this->context.getCFunc()));
@@ -315,12 +312,10 @@ namespace otter {
                 if (var->Type == TypeID::Unit) {
                     Builder->CreateRetVoid();
                     return func;
-                } else if(var->Type == TypeID::Int){
-                    Builder->CreateRet(ret);
                 } else {
                     Builder->CreateRet(ret);
                 }
-                if(ret->getType() != detail::type2type(var->Type,this->context.get())){
+                if(detail::pointerType(ret->getType()) != detail::type2type(var->Type,this->context.get())){
                     throw detail::typeError("invConv", getType(
                         detail::type2type(ret->getType(),this->context.get())),
                         getType(var->Type),"ret");
@@ -379,18 +374,7 @@ namespace otter {
                 }
             } else if (detail::sharedIsa<stringAST>(stmt)) {
                 if (auto rawStr = detail::sharedCast<stringAST>(stmt)) {
-                    auto str = ConstantDataArray::getString(context.get(),
-                                                        rawStr->Str);
-                    auto allc = addModuleInst(new AllocaInst(str->getType())
-                        ,this->context.getCFunc());
-                    addModuleInst(new llvm::StoreInst(str,allc),this->context.getCFunc());
-                    return addModuleInst(new BitCastInst(allc,
-                                llvm::PointerType::get(llvm::Type::getInt8Ty(this->context.get()),0)),this->context.getCFunc());
-                    return addModuleInst(GetElementPtrInst::CreateInBounds(
-                        allc,
-                        std::vector<Value*>
-                        (2,ConstantInt::getSigned(llvm::Type::getInt32Ty(this->context.get()),0))),
-                                this->context.getCFunc());
+                    return Builder->CreateGlobalStringPtr(rawStr->Str);
                 }
             }
         }

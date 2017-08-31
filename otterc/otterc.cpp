@@ -71,10 +71,10 @@ int main(int argc, char** argv) {
             auto const& context =
                 context::Context(std::move(codeGen->generatorModule(result)),
                                  OutputFilename.c_str(), DumpOpt);
-            auto driver = driver::Driver(context);
             if(DebugOpt){
                 context.Module->dump();
             }else{
+                auto driver = driver::Driver(context);
                 driver.BinaryOut();
             }
 
