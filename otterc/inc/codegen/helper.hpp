@@ -83,7 +83,7 @@ namespace otter {
             }
 
             decltype(auto) stdOutType = [](llvm::Type* Type,std::string& format){
-                    if(Type->getTypeID() == 14){
+                    if(Type->isArrayTy() || Type->isIntegerTy(8)){
                         format = "%s\n";
                     }else if(Type->getTypeID() == 11){
                         format = "%d\n";

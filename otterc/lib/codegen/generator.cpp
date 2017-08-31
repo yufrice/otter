@@ -379,8 +379,18 @@ namespace otter {
                 }
             } else if (detail::sharedIsa<stringAST>(stmt)) {
                 if (auto rawStr = detail::sharedCast<stringAST>(stmt)) {
-                    return ConstantDataArray::getString(context.get(),
+                    auto str = ConstantDataArray::getString(context.get(),
                                                         rawStr->Str);
+                    auto allc = addModuleInst(new AllocaInst(str->getType())
+                        ,this->context.getCFunc());
+                    addModuleInst(new llvm::StoreInst(str,allc),this->context.getCFunc());
+                    return addModuleInst(new BitCastInst(allc,
+                                llvm::PointerType::get(llvm::Type::getInt8Ty(this->context.get()),0)),this->context.getCFunc());
+                    return addModuleInst(GetElementPtrInst::CreateInBounds(
+                        allc,
+                        std::vector<Value*>
+                        (2,ConstantInt::getSigned(llvm::Type::getInt32Ty(this->context.get()),0))),
+                                this->context.getCFunc());
                 }
             }
         }
