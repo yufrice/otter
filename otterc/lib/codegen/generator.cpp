@@ -224,7 +224,8 @@ namespace otter {
                                 if(type->getTypeID() == 11 || type->getTypeID() == 3){
                                     argValue.push_back(val);
                                 }else if(type->getPointerElementType()->getTypeID() == 14
-                                                || type->getPointerElementType()->getTypeID() == 12){
+                                                || type->getPointerElementType()->getTypeID() == 12
+                                                || type->getPointerElementType()->isIntegerTy(8)){
                                     argValue.push_back(val);
                                 }else{
                                     auto loadInst = dyn_cast<LoadInst>(addModuleInst(new LoadInst(val),this->context.getCFunc()));
@@ -355,7 +356,7 @@ namespace otter {
                             val, args),
                            this->context.getCFunc());
                     }else{
-                        return val;
+                        return val->stripPointerCasts();
                     }
                 }
             } else if (detail::sharedIsa<variableAST>(stmt)) {
