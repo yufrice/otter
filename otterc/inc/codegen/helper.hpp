@@ -41,15 +41,9 @@ namespace otter {
                 }
             }
 
-            decltype(auto) constantGet(ast::TypeID &type, std::shared_ptr<ast::baseAST> ast,
+            decltype(auto) constantGet(std::shared_ptr<ast::baseAST> ast,
                                        auto& context) -> llvm::Value* {
                 if (auto rawVal = sharedCast<ast::numberAST>(ast)) {
-                    if(type != rawVal->Type){
-                        throw detail::typeError("invConv", 
-                            ast::getType(rawVal->Type),
-                            ast::getType(type),
-                            std::string(""));
-                    }
                     if (rawVal->Type == ast::TypeID::Int) {
                         auto valueType = llvm::Type::getInt32Ty(context);
                         return llvm::ConstantInt::getSigned(valueType,
@@ -85,9 +79,9 @@ namespace otter {
             decltype(auto) stdOutType = [](llvm::Type* Type,std::string& format){
                     if(Type->isArrayTy() || Type->isIntegerTy(8)){
                         format = "%s\n";
-                    }else if(Type->getTypeID() == 11){
+                    }else if(Type->isIntegerTy(32)){
                         format = "%d\n";
-                    }else if(Type->getTypeID() == 3){
+                    }else if(Type->isDoubleTy()){
                         format = "%lf\n";
                     }
             };
@@ -149,6 +143,10 @@ namespace otter {
                     return llvm::Instruction::FDiv; 
                 }
             };
+
+          // std::function<ast::TypeID(std::shared_ptr<baseAST>)> getExprType
+                //= [&getExprType](std::shared_ptr<baseAST> expr){
+            //};
         }  // name space detail
     }      // namespace codegen
 }  // namespace otter

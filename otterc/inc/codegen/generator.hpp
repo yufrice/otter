@@ -36,7 +36,7 @@ namespace otter {
             llvm::Function* GeneratorFunction(std::shared_ptr<variableAST>);
             llvm::Value* GeneratorStatement(std::shared_ptr<baseAST>,
                                             const llvm::Function*);
-            llvm::Value* GeneratorGlobalValue(const std::shared_ptr<baseAST>&, TypeID,const llvm::ValueSymbolTable* vTable = nullptr);
+            llvm::Value* GeneratorGlobalValue(const std::shared_ptr<baseAST>&, const llvm::ValueSymbolTable* vTable = nullptr);
         };
     }  // namespace codegen
 }  // namespace otter
