@@ -18,6 +18,7 @@ namespace otter {
             ModuleID,
             NumberID,
             StringID,
+            BoolID,
             IdentifierID,
             ExprID,
             MonoExprID,
@@ -29,7 +30,22 @@ namespace otter {
             WhileStatementID,
         };
 
-        enum struct TypeID { Unit, Int, Double, String, Nil };
+        enum struct TypeID { Unit, Int, Double, String, Bool, Nil };
+        decltype(auto) getType = [](TypeID type){
+            if(type == TypeID::Unit){
+                return "Unit";
+            }else if(type == TypeID::Int){
+                return "Int";
+            }else if(type == TypeID::Double){
+                return "Double";
+            }else if(type == TypeID::String){
+                return "String";
+            }else if(type == TypeID::Bool){
+                return "Bool";
+            }else if(type == TypeID::Nil){
+                return "Nil";
+            }
+        };
 
         struct baseAST {
            private:
@@ -62,6 +78,15 @@ namespace otter {
             auto getVal() -> std::string& { return this->Str; }
         };
 
+        struct boolAST : public baseAST {
+            bool Bl;
+
+            boolAST(bool bl) : baseAST(AstID::BoolID), Bl(bl){};
+            static inline bool classof(baseAST const* base) {
+                return base->getID() == AstID::BoolID;
+            }
+        };
+
         struct numberAST : public baseAST {
             double Val;
             TypeID Type;
@@ -71,7 +96,14 @@ namespace otter {
                 return base->getID() == AstID::NumberID;
             }
 
-            auto getVal() -> double { return this->Val; }
+            decltype(auto) getVal() {
+                std::variant<int,double> val;
+                if(Type == TypeID::Int){
+                    return val = (int)Val;
+                }else if(Type == TypeID::Double){
+                    return val = Val;
+                }
+            }
         };
 
         struct binaryExprAST : public baseAST {
@@ -147,8 +179,10 @@ namespace otter {
             std::vector<std::string> Args;
             std::vector<TypeID> Types;
             std::vector<std::shared_ptr<baseAST>> Statements;
+            bool flag;
 
-            functionAST(auto& null = nullptr) : baseAST(AstID::FunctionID){
+            functionAST(auto& null = nullptr) : baseAST(AstID::FunctionID),
+                    flag(false){
             };
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::FunctionID;
@@ -169,9 +203,25 @@ namespace otter {
             void addAst(const auto& ast) {
                 Statements.emplace_back(std::move(ast));
             }
+        };
 
-            auto getStatements() -> std::vector<std::shared_ptr<baseAST>>& {
-                return this->Statements;
+        struct ifStatementAST : public baseAST {
+            std::shared_ptr<baseAST> Cond;
+            std::shared_ptr<baseAST> thenStmt;
+            std::shared_ptr<baseAST> falseStmt;
+
+            ifStatementAST(std::shared_ptr<baseAST> cond)
+                : baseAST(AstID::IfStatementID), Cond(cond), thenStmt(nullptr){};
+            static inline bool classof(baseAST const* base) {
+                return base->getID() == AstID::IfStatementID;
+            }
+
+            void setVal(const auto& ast){
+                if(thenStmt == nullptr){
+                    thenStmt = std::move(ast);
+                }else{
+                    falseStmt = std::move(ast);
+                }
             }
         };
 

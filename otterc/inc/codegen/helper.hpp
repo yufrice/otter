@@ -25,6 +25,33 @@ namespace otter {
                 return std::dynamic_pointer_cast<Type>(ptr);
             }
 
+            template<typename... Str>
+            decltype(auto) typeError (std::string errType,const Str... str)
+                    -> std::string{
+                std::vector<std::string> strs = {str...};
+                if(errType == "invConv" && strs.size() == 3){
+                        return std::string("invalid conversion from '") +
+                        strs.at(0) +
+                        std::string("' to '") +
+                        strs.at(1) +
+                        std::string("' : ") +
+                        strs.at(2);
+                }else if(errType == "noValue" && strs.size() == 1){
+                    return strs.at(0) + std::string(" has no Value");
+                }
+            }
+
+            decltype(auto) constantGet(ast::TypeID& type, auto& context)
+                                    -> llvm::Constant* {
+                if(type == ast::TypeID::Int){
+                    auto valueType = llvm::Type::getInt32Ty(context);
+                    return llvm::ConstantInt::getSigned(valueType, 0);
+                }else if(type == ast::TypeID::Double){
+                    auto valueType = llvm::Type::getDoubleTy(context);
+                    return llvm::ConstantFP::get(valueType, 0);
+                }
+            }
+
             decltype(auto) constantGet(std::shared_ptr<ast::baseAST> ast,
                                        auto& context) -> llvm::Value* {
                 if (auto rawVal = sharedCast<ast::numberAST>(ast)) {
@@ -44,24 +71,32 @@ namespace otter {
                     return llvm::Type::getInt32Ty(context);
                 }else if(type == ast::TypeID::Double){
                     return llvm::Type::getDoubleTy(context);
+                }else if(type == ast::TypeID::Bool){
+                    return llvm::Type::getInt1Ty(context);
                 }else if(type == ast::TypeID::String){
                     return llvm::Type::getInt8Ty(context);
                 }
             }
-            decltype(auto) type2type(llvm::Type*& type,auto& context){
-                if(type == llvm::Type::getInt32Ty(context)){
+            decltype(auto) type2type(llvm::Type* type,auto& context){
+                if(type->isIntegerTy(32)){
                     return ast::TypeID::Int;
-                }else if(type == llvm::Type::getDoubleTy(context)){
+                }else if(type->isIntegerTy(1)){
+                    return ast::TypeID::Bool;
+                }else if(type->isDoubleTy()){
                     return ast::TypeID::Double;
+                }else if(type->isArrayTy() || type->isIntegerTy(8)){
+                    return ast::TypeID::String;
+                }else if(type->isFunctionTy()){
+                    return ast::TypeID::Nil;
                 }
             }
 
             decltype(auto) stdOutType = [](llvm::Type* Type,std::string& format){
-                    if(Type->getTypeID() == 14){
+                    if(Type->isArrayTy() || Type->isIntegerTy(8)){
                         format = "%s\n";
-                    }else if(Type->getTypeID() == 11){
+                    }else if(Type->isIntegerTy(32)){
                         format = "%d\n";
-                    }else if(Type->getTypeID() == 3){
+                    }else if(Type->isDoubleTy()){
                         format = "%lf\n";
                     }
             };
@@ -73,6 +108,23 @@ namespace otter {
                     return "digitFormat";
                 }else if(name == "%lf\n"){
                     return "realFormat";
+                }
+            };
+
+            decltype(auto) pointerType = [](llvm::Type* type)
+                        -> llvm::Type* {
+                if(type->isPointerTy()){
+                    if(type->getPointerElementType()->getTypeID() == 12){
+                        auto fType = llvm::dyn_cast<llvm::FunctionType>(type->getPointerElementType());
+                        if(fType->getReturnType() -> isPointerTy()){
+                            return fType->getReturnType()->getPointerElementType();
+                        }else{
+                            return fType->getReturnType();
+                        }
+                    }
+                    return type->getPointerElementType();
+                }else{
+                    return type;
                 }
             };
 
@@ -107,6 +159,9 @@ namespace otter {
                 }
             };
 
+          // std::function<ast::TypeID(std::shared_ptr<baseAST>)> getExprType
+                //= [&getExprType](std::shared_ptr<baseAST> expr){
+            //};
         }  // name space detail
     }      // namespace codegen
 }  // namespace otter

@@ -6,12 +6,24 @@
 #include <vector>
 #include <otterc.hpp>
 
-
 namespace {
     static llvm::cl::OptionCategory CompilerCategory("Complier Options");
-    static llvm::cl::opt<std::string> InputFilename(llvm::cl::Positional, llvm::cl::desc("<input>"));
-    static llvm::cl::opt<std::string> OutputFilename("o", llvm::cl::desc("Place the output into <file>."), llvm::cl::value_desc("file"), llvm::cl::init("a.out"),llvm::cl::cat(CompilerCategory));
-    static llvm::cl::opt<bool> DumpOpt("dump", llvm::cl::desc("Display bitcode."), llvm::cl::init(false), llvm::cl::cat(CompilerCategory));;
+    static llvm::cl::opt<std::string> InputFilename(llvm::cl::Positional,
+                                                    llvm::cl::desc("<input>"));
+    static llvm::cl::opt<std::string> OutputFilename(
+        "o",
+        llvm::cl::desc("Place the output into <file>."),
+        llvm::cl::value_desc("file"),
+        llvm::cl::init("a.out"),
+        llvm::cl::cat(CompilerCategory));
+    static llvm::cl::opt<bool> DumpOpt("dump",
+                                       llvm::cl::desc("Display bitcode."),
+                                       llvm::cl::init(false),
+                                       llvm::cl::cat(CompilerCategory));
+    static llvm::cl::opt<bool> DebugOpt("debug",
+                                       llvm::cl::desc("Display debug log."),
+                                       llvm::cl::init(false),
+                                       llvm::cl::cat(CompilerCategory));
 }
 
 int main(int argc, char** argv) {
@@ -54,12 +66,17 @@ int main(int argc, char** argv) {
             semantics::preCheck pck(result);
             pck.check();
 
-            auto codeGen = std::unique_ptr<codegen::Generator>(new codegen::Generator);
-            auto const& context =  context::Context(std::move(
-                codeGen->generatorModule(result)
-            ),OutputFilename.c_str(),DumpOpt);
-            auto driver = driver::Driver(context);
-            driver.BinaryOut();
+            auto codeGen =
+                std::unique_ptr<codegen::Generator>(new codegen::Generator);
+            auto const& context =
+                context::Context(std::move(codeGen->generatorModule(result)),
+                                 OutputFilename.c_str(), DumpOpt);
+            if(DebugOpt){
+                context.Module->dump();
+            }else{
+                auto driver = driver::Driver(context);
+                driver.BinaryOut();
+            }
 
         } else {
             /* ToDo

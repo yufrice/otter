@@ -30,5 +30,27 @@ namespace otter{
             }
         }
 
+        void Context::setType(llvm::Type* type){
+            this->argsTypes.emplace_back(type);
+        }
+
+        llvm::Type* Context::getType(){
+            if(this->argsTypes.empty()){
+                return nullptr;
+            }
+            auto type = this->argsTypes.at(0);
+            this->argsTypes.pop_back();
+            return type;
+        }
+
+        bool Context::clearType(){
+            if(this->argsTypes.empty()){
+                return true;
+            }else{
+                this->argsTypes.clear();
+                return false;
+            }
+        }
+
     }  // namespace codegen
 }  // namespace otter
