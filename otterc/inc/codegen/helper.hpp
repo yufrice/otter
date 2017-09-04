@@ -41,6 +41,17 @@ namespace otter {
                 }
             }
 
+            decltype(auto) constantGet(ast::TypeID& type, auto& context)
+                                    -> llvm::Constant* {
+                if(type == ast::TypeID::Int){
+                    auto valueType = llvm::Type::getInt32Ty(context);
+                    return llvm::ConstantInt::getSigned(valueType, 0);
+                }else if(type == ast::TypeID::Double){
+                    auto valueType = llvm::Type::getDoubleTy(context);
+                    return llvm::ConstantFP::get(valueType, 0);
+                }
+            }
+
             decltype(auto) constantGet(std::shared_ptr<ast::baseAST> ast,
                                        auto& context) -> llvm::Value* {
                 if (auto rawVal = sharedCast<ast::numberAST>(ast)) {
@@ -60,6 +71,8 @@ namespace otter {
                     return llvm::Type::getInt32Ty(context);
                 }else if(type == ast::TypeID::Double){
                     return llvm::Type::getDoubleTy(context);
+                }else if(type == ast::TypeID::Bool){
+                    return llvm::Type::getInt1Ty(context);
                 }else if(type == ast::TypeID::String){
                     return llvm::Type::getInt8Ty(context);
                 }
@@ -73,6 +86,8 @@ namespace otter {
                     return ast::TypeID::Double;
                 }else if(type->isArrayTy() || type->isIntegerTy(8)){
                     return ast::TypeID::String;
+                }else if(type->isFunctionTy()){
+                    return ast::TypeID::Nil;
                 }
             }
 

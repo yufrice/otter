@@ -36,8 +36,6 @@ namespace otter {
             this->Entry =
                 BasicBlock::Create(context.get(), "entry", mainFunc);
             Builder->SetInsertPoint(this->Entry);
-            Builder->CreateRetVoid();
-            auto retEnd = --(this->Entry->end());
 
             for (auto stmt: mod->Stmt) {
                 if(detail::sharedIsa<variableAST>(stmt)){
@@ -45,7 +43,7 @@ namespace otter {
                         if (auto inst = generateGlovalVariable(rawVar)) {
                             if(isa<StoreInst>(inst)){
                                 if(auto storeInst = dyn_cast<StoreInst>(inst)){
-                                    this->Entry->getInstList().insert(retEnd, storeInst);
+                                    this->Entry->getInstList().insert(this->Entry->end(), storeInst);
                                 }
                             }
                         }else {
@@ -55,7 +53,7 @@ namespace otter {
                 }else if(detail::sharedIsa<funcCallAST>(stmt)){
                     if(auto rawCall = detail::shared4Shared<funcCallAST>(stmt)){
                         if (auto inst = (generateCallFunc(rawCall))) {
-                            this->Entry->getInstList().insert(retEnd, inst);
+                            this->Entry->getInstList().insert(this->Entry->end(), inst);
                         } else {
                             throw std::string("type error");
                         }
@@ -63,6 +61,7 @@ namespace otter {
                 }
             }
 
+            Builder->CreateRetVoid();
             return std::move(this->Module);
         }
 
@@ -70,12 +69,37 @@ namespace otter {
             const std::shared_ptr<variableAST>& var) {
             if (detail::sharedIsa<functionAST>(var->Val)) {
                 return this->GeneratorFunction(var);
+            }else if (detail::sharedIsa<ifStatementAST>(var->Val)) {
+                auto gvar = new GlobalVariable(
+                    *this->Module, detail::type2type(var->Type, this->context.get()), false,
+                    GlobalVariable::LinkageTypes::PrivateLinkage, nullptr,
+                    var->Name);
+                gvar->setInitializer(detail::constantGet(var->Type, this->context.get()));
+                this->Builder->CreateStore(this->generateifStmt(var), gvar);
+                return gvar;
+            }else if (detail::sharedIsa<boolAST>(var->Val)) {
+                    if(auto rawBool = detail::sharedCast<boolAST>(var->Val)){
+                        auto constant = ConstantInt::get(llvm::Type::getInt1Ty(this->context.get()),
+                                    static_cast<int>(rawBool->Bl));
+                        auto gvar = new GlobalVariable(
+                            *this->Module,
+                            llvm::Type::getInt1Ty(this->context.get()), false,
+                            GlobalVariable::LinkageTypes::PrivateLinkage, nullptr,
+                            var->Name);
+                        gvar->setInitializer(constant);
+                        return gvar;
+                    }
             }else if (var->Type == TypeID::String) {
                 if (detail::sharedIsa<stringAST>(var->Val)) {
                     return this->GeneratorGlobalString(var);
                 }else if (detail::sharedIsa<identifierAST>(var->Val)) {
                     if(auto rawID = detail::sharedCast<identifierAST>(var->Val)){
                         auto id = this->Module->getGlobalVariable(rawID->Ident);
+                        if(var->Type == detail::type2type(id->getValueType(),this->context.get())){
+                            throw detail::typeError("invConv", 
+                            ast::getType(var->Type),
+                            ast::getType(detail::type2type(id->getValueType(),this->context.get())), rawID->Ident);
+                        }
                         auto gvar = new GlobalVariable(
                            *this->Module, id->getValueType(), false,
                            GlobalVariable::LinkageTypes::PrivateLinkage, nullptr,
@@ -113,7 +137,57 @@ namespace otter {
                 }
                 gvar->setInitializer(constant);
                 Value* value = this->GeneratorGlobalValue(var->Val);
+                if(detail::type2type(value->getType(),this->context.get()) != var->Type){
+                    throw detail::typeError("invConv", 
+                        ast::getType(detail::type2type(value->getType(),this->context.get())), 
+                        ast::getType(var->Type), var->Name);
+                }
                 return new StoreInst(value, gvar);
+            }
+        }
+
+        Value* Generator::generateifStmt(const std::shared_ptr<variableAST>& ast){
+            if(auto ifStmt = detail::sharedCast<ifStatementAST>(ast->Val)){
+                auto type = detail::type2type(ast->Type, this->context.get());
+
+                auto currentBB = this->Builder->GetInsertBlock();
+                auto currentInstP = this->Builder->GetInsertPoint();
+
+                auto cond = this->Generator::generateCond(ifStmt->Cond);
+                auto thenBB = BasicBlock::Create(this->context.get(),"if.then", currentBB->getParent());
+                auto falseBB = BasicBlock::Create(this->context.get(),"if.flase", currentBB->getParent());
+                auto newEntry = BasicBlock::Create(this->context.get(),"entry", currentBB->getParent());
+                this->Builder->CreateCondBr(cond, thenBB, falseBB);
+                this->Entry = newEntry;
+
+
+                this->Builder->SetInsertPoint(thenBB);
+                this->Entry = thenBB;
+                auto thenVal = GeneratorGlobalValue(ifStmt->thenStmt);
+                this->Entry = newEntry;
+                this->Builder->CreateAlloca(type, thenVal);
+                this->Builder->CreateBr(this->Entry);
+
+                this->Builder->SetInsertPoint(falseBB);
+                this->Entry = falseBB;
+                auto falseVal = GeneratorGlobalValue(ifStmt->falseStmt);
+                this->Entry = newEntry;
+                this->Builder->CreateAlloca(type, falseVal);
+                this->Builder->CreateBr(this->Entry);
+
+                this->Builder->SetInsertPoint(this->Entry);
+                auto phi = this->Builder->CreatePHI(type, 2);
+                phi->addIncoming(thenVal, thenBB);
+                phi->addIncoming(falseVal, falseBB);
+
+                return phi;
+            }
+        }
+
+        Value* Generator::generateCond(const std::shared_ptr<baseAST>& cond){
+            if(auto rawBool = detail::sharedCast<boolAST>(cond)){
+                return ConstantInt::get(llvm::Type::getInt1Ty(this->context.get()),
+                    static_cast<int>(rawBool->Bl));
             }
         }
 
@@ -139,7 +213,7 @@ namespace otter {
         CallInst* Generator::generateCallFunc(const std::shared_ptr<baseAST> &expr,const Function* func) {
             std::vector<llvm::Value*> args;
             if(func == nullptr){
-                func = this->Module->getFunction("main");
+                func = this->Entry->getParent();
             }
             if (auto rawCall = detail::sharedCast<funcCallAST>(expr)) {
                 if (rawCall->Name == "print") {
@@ -195,7 +269,7 @@ namespace otter {
                     if(detail::sharedIsa<identifierAST>(args) && type->isPointerTy()){
                         if(type->getPointerElementType()->isIntegerTy(32)
                             || type->getPointerElementType()->isDoubleTy()){
-                                val = addModuleInst(new LoadInst(val),this->context.getCFunc());
+                                val = this->Builder->CreateLoad(val);
                         }
                     }
                     argValue.emplace_back(val);
@@ -278,6 +352,7 @@ namespace otter {
                         detail::type2type(ret->getType(),this->context.get())),
                         getType(var->Type),"ret");
                 }
+                this->Builder->SetInsertPoint(this->Entry);
                 return func;
             }
         }
@@ -400,10 +475,10 @@ namespace otter {
                 return detail::constantGet(std::move(var), 
                                            this->context.get());
             } else if (auto rawVal = detail::sharedCast<binaryExprAST>(var)) {
-                auto val = GeneratorGlobalValue(rawVal->Lhs, std::move(vTable));
-                            return addModuleInst(BinaryOperator::Create(detail::op2op(rawVal->Op,detail::type2type(val->getType(),this->context.get())),
-                                val,
-                                GeneratorGlobalValue(rawVal->Rhs, std::move(vTable))),this->context.getCFunc());
+                auto lhs = GeneratorGlobalValue(rawVal->Lhs, std::move(vTable));
+                auto rhs = GeneratorGlobalValue(rawVal->Rhs, std::move(vTable));
+                return addModuleInst(BinaryOperator::Create(detail::op2op(rawVal->Op,detail::type2type(lhs->getType(),this->context.get())),
+                    lhs,rhs));
             } else if (rawVal->Lhs) {
                 return GeneratorGlobalValue(rawVal->Lhs, std::move(vTable));
             } else {

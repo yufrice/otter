@@ -179,8 +179,10 @@ namespace otter {
             std::vector<std::string> Args;
             std::vector<TypeID> Types;
             std::vector<std::shared_ptr<baseAST>> Statements;
+            bool flag;
 
-            functionAST(auto& null = nullptr) : baseAST(AstID::FunctionID){
+            functionAST(auto& null = nullptr) : baseAST(AstID::FunctionID),
+                    flag(false){
             };
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::FunctionID;
@@ -201,9 +203,25 @@ namespace otter {
             void addAst(const auto& ast) {
                 Statements.emplace_back(std::move(ast));
             }
+        };
 
-            auto getStatements() -> std::vector<std::shared_ptr<baseAST>>& {
-                return this->Statements;
+        struct ifStatementAST : public baseAST {
+            std::shared_ptr<baseAST> Cond;
+            std::shared_ptr<baseAST> thenStmt;
+            std::shared_ptr<baseAST> falseStmt;
+
+            ifStatementAST(std::shared_ptr<baseAST> cond)
+                : baseAST(AstID::IfStatementID), Cond(cond), thenStmt(nullptr){};
+            static inline bool classof(baseAST const* base) {
+                return base->getID() == AstID::IfStatementID;
+            }
+
+            void setVal(const auto& ast){
+                if(thenStmt == nullptr){
+                    thenStmt = std::move(ast);
+                }else{
+                    falseStmt = std::move(ast);
+                }
             }
         };
 
