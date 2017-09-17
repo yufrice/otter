@@ -59,7 +59,7 @@ namespace otter {
             std::system(command.c_str());
 
             if (this->Context->dumpflag) {
-                this->Context->Module->dump();
+                this->Context->Module->print(llvm::dbgs(), nullptr);
             }
         }
 

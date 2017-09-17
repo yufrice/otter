@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
                 context::Context(std::move(codeGen->generatorModule(result)),
                                  OutputFilename.c_str(), DumpOpt);
             if(DebugOpt){
-                context.Module->dump();
+                context.Module->print(llvm::dbgs(), nullptr);
             }else{
                 auto driver = driver::Driver(context);
                 driver.BinaryOut();
