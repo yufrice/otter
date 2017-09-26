@@ -20,8 +20,8 @@ namespace otter {
         x3::rule<class variable, std::shared_ptr<variableAST>> const variable(
             "variable");
 
-        x3::rule<class ifStatement, std::shared_ptr<ifStatementAST>> const ifStatement(
-            "ifStatement");
+        x3::rule<class ifStatement, std::shared_ptr<ifStatementAST>> const
+            ifStatement("ifStatement");
 
         x3::rule<class funcCall, std::shared_ptr<funcCallAST>> const funcCall(
             "funcCall");
@@ -47,22 +47,25 @@ namespace otter {
         auto const id_def =
             x3::lexeme[((x3::alpha | '_') >> *(x3::alnum | '_'))];
 
-        static x3::real_parser<double, x3::strict_real_policies<double>> const strict_double;
-        auto const number_def = id[detail::sharedAssign<identifierAST>()] |
-                                strict_double[detail::sharedAssign<numberAST>(TypeID::Double)] |
-                                x3::int_[detail::sharedAssign<numberAST>(TypeID::Int)] |
-                                '(' >> addExpr[detail::assign()] >> ')';
+        static x3::real_parser<double, x3::strict_real_policies<double>> const
+            strict_double;
+        auto const number_def =
+            id[detail::sharedAssign<identifierAST>()] |
+            strict_double[detail::sharedAssign<numberAST>(TypeID::Double)] |
+            x3::int_[detail::sharedAssign<numberAST>(TypeID::Int)] |
+            '(' >> addExpr[detail::assign()] >> ')';
         auto const mulExpr_def =
             number[detail::assign()] >>
             *((x3::lit("*") >>
                number[detail::makeBinaryExpr<binaryExprAST>("*")]) |
               (x3::lit("/") >>
                number[detail::makeBinaryExpr<binaryExprAST>("/")]));
-        auto const addExpr_def = mulExpr[detail::assign()] >>
-                                 *((x3::lit("+") >>
-                                    mulExpr[detail::makeBinaryExpr<binaryExprAST>("+")]) |
-                                   (x3::lit("-") >>
-                                    mulExpr[detail::makeBinaryExpr<binaryExprAST>("-")]));
+        auto const addExpr_def =
+            mulExpr[detail::assign()] >>
+            *((x3::lit("+") >>
+               mulExpr[detail::makeBinaryExpr<binaryExprAST>("+")]) |
+              (x3::lit("-") >>
+               mulExpr[detail::makeBinaryExpr<binaryExprAST>("-")]));
         auto const boolExpr_def =
             addExpr[detail::assign()] >>
             *((x3::lit("<") | x3::lit(">") | x3::lit("<=") | x3::lit(">=")) >>
@@ -79,18 +82,20 @@ namespace otter {
             x3::string("[](")[detail::sharedAssign<functionAST>()] >>
             *(id[detail::sharedAdd()] >> type[detail::sharedAdd()]) >>
             x3::lit(')') >>
-            *(funcCall[detail::addAST()] |
-              variable[detail::addAST()]) >>
+            *(funcCall[detail::addAST()] | variable[detail::addAST()]) >>
             ((addExpr[detail::addAST()] |
               string[detail::addAST<stringAST>()]) >>
                  x3::lit(";") |
-             x3::lit(";")) >> x3::lit("(") >> x3::lit(")");
+             x3::lit(";")) >>
+            -(x3::lit("(") >>
+              *(value[detail::addAST()] | addExpr[detail::addAST()]) >>
+              x3::lit(")"));
 
         auto const string_def = x3::lit('"') >>
                                 +((x3::char_)-x3::lit('"')) >> x3::lit('"');
         auto const _bool_def = x3::bool_[detail::sharedAssign<ast::boolAST>()];
-        auto const value_def = string[detail::sharedAssign<stringAST>()]
-                                | x3::bool_[detail::sharedAssign<boolAST>()];
+        auto const value_def = string[detail::sharedAssign<stringAST>()] |
+                               x3::bool_[detail::sharedAssign<boolAST>()];
 
         auto const type_def =
             ":" >> (x3::string("int")[detail::assign(TypeID::Int)] |
@@ -103,23 +108,24 @@ namespace otter {
                                   id[detail::sharedAssign<variableAST>()] >>
                                   type[detail::sharedAdd()] >> "=" >>
                                   (ifStatement[detail::addAST()] |
-                                     value[detail::addAST()] |
+                                   value[detail::addAST()] |
                                    addExpr[detail::addAST()] |
                                    function[detail::addAST()]);
 
-        auto const ifStatement_def = x3::lit("if") >> _bool[detail::sharedAssign<ifStatementAST>()]
-                    >> x3::lit("then") >> addExpr[detail::sharedAdd()] 
-                    >> x3::lit("else") >> addExpr[detail::sharedAdd()];
-
+        auto const ifStatement_def =
+            x3::lit("if") >> _bool[detail::sharedAssign<ifStatementAST>()] >>
+            x3::lit("then") >> addExpr[detail::sharedAdd()] >>
+            x3::lit("else") >> addExpr[detail::sharedAdd()];
 
         auto const funcCall_def = x3::lit('(') >>
-                                   id[detail::sharedAssign<funcCallAST>()] >>
-                                  *(funcCall[detail::addAST()] | string[detail::addAST<stringAST>()] |
-                                    addExpr[detail::addAST()]) >> x3::lit(')');
+                                  id[detail::sharedAssign<funcCallAST>()] >>
+                                  *(funcCall[detail::addAST()] |
+                                    string[detail::addAST<stringAST>()] |
+                                    addExpr[detail::addAST()]) >>
+                                  x3::lit(')');
 
         auto const module_def =
-            *(variable[detail::addAST()] |
-              funcCall[detail::addAST()]);
+            *(variable[detail::addAST()] | funcCall[detail::addAST()]);
 
         auto const skkiper =
             x3::space | x3::standard_wide::space |
