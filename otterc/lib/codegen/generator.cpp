@@ -174,7 +174,7 @@ namespace otter {
                 auto thenBB = BasicBlock::Create(this->context.get(), "if.then",
                                                  currentBB->getParent());
                 auto falseBB = BasicBlock::Create(
-                    this->context.get(), "if.flase", currentBB->getParent());
+                    this->context.get(), "if.false", currentBB->getParent());
                 auto newEntry = BasicBlock::Create(this->context.get(), "entry",
                                                    currentBB->getParent());
                 this->Builder->CreateCondBr(cond, thenBB, falseBB);
@@ -208,6 +208,16 @@ namespace otter {
                 return ConstantInt::get(
                     llvm::Type::getInt1Ty(this->context.get()),
                     static_cast<int>(rawBool->Bl));
+            } else if (detail::sharedIsa<identifierAST>(cond)) {
+                auto condVal = GeneratorGlobalValue(cond);
+                if (condVal->getType()->isIntegerTy(1)) {
+                    return condVal;
+                } else {
+                    throw std::string("dame");
+                }
+            } else if (detail::sharedIsa<funcCallAST>(cond)) {
+                return addModuleInst(generateCallFunc(cond),
+                                     this->context.getCFunc());
             }
         }
 
@@ -230,7 +240,7 @@ namespace otter {
             }
         }
 
-        CallInst* Generator::generateCallFunc(
+        Instruction* Generator::generateCallFunc(
             const std::shared_ptr<baseAST>& expr,
             const Function* func) {
             std::vector<llvm::Value*> args;
@@ -240,6 +250,8 @@ namespace otter {
             if (auto rawCall = detail::sharedCast<funcCallAST>(expr)) {
                 if (rawCall->Name == "print") {
                     return generatePrint(expr, func);
+                } else if (rawCall->Name == "=") {
+                    return generateLOp(expr, func);
                 } else {
                     for (auto arg = (this->Module->getFunction(rawCall->Name))
                                         ->arg_begin();
@@ -254,6 +266,27 @@ namespace otter {
                     return CallInst::Create(
                         this->Module->getFunction(rawCall->Name), args);
                 }
+            }
+        }
+
+        Instruction* Generator::generateLOp(
+            const std::shared_ptr<baseAST>& expr,
+            const Function* func) {
+            if (auto rawCall = detail::sharedCast<funcCallAST>(expr)) {
+                if (rawCall->Args.size() > 2) {
+                    throw std::string("too many arguments to function op(any)");
+                } else if (rawCall->Args.size() == 0) {
+                    throw std::string("too few arguments to function op(any)");
+                }
+                auto op    = rawCall->Name;
+                auto args0 = rawCall->Args.at(0);
+                auto args1 = rawCall->Args.at(1);
+                auto lhs   = GeneratorStatement(args0, func);
+                auto rhs   = GeneratorStatement(args1, func);
+                return CmpInst::Create(
+                    detail::op2lop(op, detail::type2type(lhs->getType(),
+                                                         this->context.get())),
+                    CmpInst::ICMP_EQ, lhs, rhs);
             }
         }
 
@@ -432,6 +465,7 @@ namespace otter {
                 if (auto rawStr = detail::sharedCast<stringAST>(stmt)) {
                     return Builder->CreateGlobalStringPtr(rawStr->Str);
                 }
+            } else if (detail::sharedIsa<ifStatementAST>(stmt)) {
             }
         }
 

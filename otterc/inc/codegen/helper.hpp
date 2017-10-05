@@ -25,28 +25,25 @@ namespace otter {
                 return std::dynamic_pointer_cast<Type>(ptr);
             }
 
-            template<typename... Str>
-            decltype(auto) typeError (std::string errType,const Str... str)
-                    -> std::string{
+            template <typename... Str>
+            decltype(auto) typeError(std::string errType, const Str... str)
+                -> std::string {
                 std::vector<std::string> strs = {str...};
-                if(errType == "invConv" && strs.size() == 3){
-                        return std::string("invalid conversion from '") +
-                        strs.at(0) +
-                        std::string("' to '") +
-                        strs.at(1) +
-                        std::string("' : ") +
-                        strs.at(2);
-                }else if(errType == "noValue" && strs.size() == 1){
+                if (errType == "invConv" && strs.size() == 3) {
+                    return std::string("invalid conversion from '") +
+                           strs.at(0) + std::string("' to '") + strs.at(1) +
+                           std::string("' : ") + strs.at(2);
+                } else if (errType == "noValue" && strs.size() == 1) {
                     return strs.at(0) + std::string(" has no Value");
                 }
             }
 
             decltype(auto) constantGet(ast::TypeID& type, auto& context)
-                                    -> llvm::Constant* {
-                if(type == ast::TypeID::Int){
+                -> llvm::Constant* {
+                if (type == ast::TypeID::Int) {
                     auto valueType = llvm::Type::getInt32Ty(context);
                     return llvm::ConstantInt::getSigned(valueType, 0);
-                }else if(type == ast::TypeID::Double){
+                } else if (type == ast::TypeID::Double) {
                     auto valueType = llvm::Type::getDoubleTy(context);
                     return llvm::ConstantFP::get(valueType, 0);
                 }
@@ -66,101 +63,117 @@ namespace otter {
                 }
             }
 
-            decltype(auto) type2type(ast::TypeID& type,auto& context) -> llvm::Type*{
-                if(type == ast::TypeID::Int){
+            decltype(auto) type2type(ast::TypeID& type, auto& context)
+                -> llvm::Type* {
+                if (type == ast::TypeID::Int) {
                     return llvm::Type::getInt32Ty(context);
-                }else if(type == ast::TypeID::Double){
+                } else if (type == ast::TypeID::Double) {
                     return llvm::Type::getDoubleTy(context);
-                }else if(type == ast::TypeID::Bool){
+                } else if (type == ast::TypeID::Bool) {
                     return llvm::Type::getInt1Ty(context);
-                }else if(type == ast::TypeID::String){
+                } else if (type == ast::TypeID::String) {
                     return llvm::Type::getInt8Ty(context);
                 }
             }
-            decltype(auto) type2type(llvm::Type* type,auto& context){
-                if(type->isIntegerTy(32)){
+            decltype(auto) type2type(llvm::Type* type, auto& context) {
+                if (type->isIntegerTy(32)) {
                     return ast::TypeID::Int;
-                }else if(type->isIntegerTy(1)){
+                } else if (type->isIntegerTy(1)) {
                     return ast::TypeID::Bool;
-                }else if(type->isDoubleTy()){
+                } else if (type->isDoubleTy()) {
                     return ast::TypeID::Double;
-                }else if(type->isArrayTy() || type->isIntegerTy(8)){
+                } else if (type->isArrayTy() || type->isIntegerTy(8)) {
                     return ast::TypeID::String;
-                }else if(type->isFunctionTy()){
+                } else if (type->isFunctionTy()) {
                     return ast::TypeID::Nil;
                 }
             }
 
-            decltype(auto) stdOutType = [](llvm::Type* Type,std::string& format){
-                    if(Type->isArrayTy() || Type->isIntegerTy(8)){
-                        format = "%s\n";
-                    }else if(Type->isIntegerTy(32)){
-                        format = "%d\n";
-                    }else if(Type->isDoubleTy()){
-                        format = "%lf\n";
-                    }
+            decltype(auto) stdOutType = [](llvm::Type* Type,
+                                           std::string& format) {
+                if (Type->isArrayTy() || Type->isIntegerTy(8)) {
+                    format = "%s\n";
+                } else if (Type->isIntegerTy(32)) {
+                    format = "%d\n";
+                } else if (Type->isDoubleTy()) {
+                    format = "%lf\n";
+                }
             };
 
-            decltype(auto) formatNameMangling = [](const std::string& name){
-                if(name == "%s\n"){
+            decltype(auto) formatNameMangling = [](const std::string& name) {
+                if (name == "%s\n") {
                     return "stringFormat";
-                }else if(name == "%d\n"){
+                } else if (name == "%d\n") {
                     return "digitFormat";
-                }else if(name == "%lf\n"){
+                } else if (name == "%lf\n") {
                     return "realFormat";
                 }
             };
 
-            decltype(auto) pointerType = [](llvm::Type* type)
-                        -> llvm::Type* {
-                if(type->isPointerTy()){
-                    if(type->getPointerElementType()->getTypeID() == 12){
-                        auto fType = llvm::dyn_cast<llvm::FunctionType>(type->getPointerElementType());
-                        if(fType->getReturnType() -> isPointerTy()){
-                            return fType->getReturnType()->getPointerElementType();
-                        }else{
+            decltype(auto) pointerType = [](llvm::Type* type) -> llvm::Type* {
+                if (type->isPointerTy()) {
+                    if (type->getPointerElementType()->getTypeID() == 12) {
+                        auto fType = llvm::dyn_cast<llvm::FunctionType>(
+                            type->getPointerElementType());
+                        if (fType->getReturnType()->isPointerTy()) {
+                            return fType->getReturnType()
+                                ->getPointerElementType();
+                        } else {
                             return fType->getReturnType();
                         }
                     }
                     return type->getPointerElementType();
-                }else{
+                } else {
                     return type;
                 }
             };
 
-            namespace{
-                decltype(auto) equalPair = [](const auto &pair,const auto& str1, const auto& str2){
-                                if(pair.first == str1 && pair.second == str2){
-                                    return true;
-                                }else{
-                                    false;
-                                }
-                };
-            } // name space any
+            namespace {
+                decltype(auto) equalPair =
+                    [](const auto& pair, const auto& str1, const auto& str2) {
+                        if (pair.first == str1 && pair.second == str2) {
+                            return true;
+                        } else {
+                            false;
+                        }
+                    };
+            }  // name space any
 
-            decltype(auto) op2op = [](const std::string& op,const ast::TypeID& type){
-                auto pair = std::make_pair(op,type);
-                if(equalPair(pair,"+",ast::TypeID::Int)){
-                    return llvm::Instruction::Add; 
-                }else if(equalPair(pair,"+",ast::TypeID::Double)){
-                    return llvm::Instruction::FAdd; 
-                }else if(equalPair(pair,"-",ast::TypeID::Int)){
-                    return llvm::Instruction::Sub; 
-                }else if(equalPair(pair,"-",ast::TypeID::Double)){
-                    return llvm::Instruction::FSub; 
-                }else if(equalPair(pair,"*",ast::TypeID::Int)){
-                    return llvm::Instruction::Mul; 
-                }else if(equalPair(pair,"*",ast::TypeID::Double)){
-                    return llvm::Instruction::FMul; 
-                }else if(equalPair(pair,"/",ast::TypeID::Int)){
-                    return llvm::Instruction::SDiv; 
-                }else if(equalPair(pair,"/",ast::TypeID::Double)){
-                    return llvm::Instruction::FDiv; 
+            decltype(auto) op2op = [](const std::string& op,
+                                      const ast::TypeID& type) {
+                auto pair = std::make_pair(op, type);
+                if (equalPair(pair, "+", ast::TypeID::Int)) {
+                    return llvm::Instruction::Add;
+                } else if (equalPair(pair, "+", ast::TypeID::Double)) {
+                    return llvm::Instruction::FAdd;
+                } else if (equalPair(pair, "-", ast::TypeID::Int)) {
+                    return llvm::Instruction::Sub;
+                } else if (equalPair(pair, "-", ast::TypeID::Double)) {
+                    return llvm::Instruction::FSub;
+                } else if (equalPair(pair, "*", ast::TypeID::Int)) {
+                    return llvm::Instruction::Mul;
+                } else if (equalPair(pair, "*", ast::TypeID::Double)) {
+                    return llvm::Instruction::FMul;
+                } else if (equalPair(pair, "/", ast::TypeID::Int)) {
+                    return llvm::Instruction::SDiv;
+                } else if (equalPair(pair, "/", ast::TypeID::Double)) {
+                    return llvm::Instruction::FDiv;
                 }
             };
 
-          // std::function<ast::TypeID(std::shared_ptr<baseAST>)> getExprType
-                //= [&getExprType](std::shared_ptr<baseAST> expr){
+            decltype(auto) op2lop = [](const std::string& op,
+                                       const ast::TypeID& type) {
+                auto pair = std::make_pair(op, type);
+                if (equalPair(pair, "=", ast::TypeID::Int)) {
+                    return llvm::Instruction::ICmp;
+                } else if (equalPair(pair, "=", ast::TypeID::Double)) {
+                    return llvm::Instruction::FCmp;
+                }
+            };
+
+            // std::function<ast::TypeID(std::shared_ptr<baseAST>)>
+            // getExprType
+            //= [&getExprType](std::shared_ptr<baseAST> expr){
             //};
         }  // name space detail
     }      // namespace codegen

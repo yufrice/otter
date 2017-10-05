@@ -31,18 +31,18 @@ namespace otter {
         };
 
         enum struct TypeID { Unit, Int, Double, String, Bool, Nil };
-        decltype(auto) getType = [](TypeID type){
-            if(type == TypeID::Unit){
+        decltype(auto) getType = [](TypeID type) {
+            if (type == TypeID::Unit) {
                 return "Unit";
-            }else if(type == TypeID::Int){
+            } else if (type == TypeID::Int) {
                 return "Int";
-            }else if(type == TypeID::Double){
+            } else if (type == TypeID::Double) {
                 return "Double";
-            }else if(type == TypeID::String){
+            } else if (type == TypeID::String) {
                 return "String";
-            }else if(type == TypeID::Bool){
+            } else if (type == TypeID::Bool) {
                 return "Bool";
-            }else if(type == TypeID::Nil){
+            } else if (type == TypeID::Nil) {
                 return "Nil";
             }
         };
@@ -91,16 +91,17 @@ namespace otter {
             double Val;
             TypeID Type;
 
-            numberAST(double val,TypeID type) : baseAST(AstID::NumberID), Val(val),Type(type){};
+            numberAST(double val, TypeID type)
+                : baseAST(AstID::NumberID), Val(val), Type(type){};
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::NumberID;
             }
 
             decltype(auto) getVal() {
-                std::variant<int,double> val;
-                if(Type == TypeID::Int){
+                std::variant<int, double> val;
+                if (Type == TypeID::Int) {
                     return val = (int)Val;
-                }else if(Type == TypeID::Double){
+                } else if (Type == TypeID::Double) {
                     return val = Val;
                 }
             }
@@ -111,8 +112,10 @@ namespace otter {
             std::shared_ptr<baseAST> Lhs;
             std::shared_ptr<baseAST> Rhs;
 
-            binaryExprAST(std::shared_ptr<baseAST>& lhs,std::string op, std::shared_ptr<baseAST>& rhs)
-                : baseAST(AstID::BinExprID), Lhs(lhs),Rhs(rhs),Op(op) {}
+            binaryExprAST(std::shared_ptr<baseAST>& lhs,
+                          std::string op,
+                          std::shared_ptr<baseAST>& rhs)
+                : baseAST(AstID::BinExprID), Lhs(lhs), Rhs(rhs), Op(op) {}
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::BinExprID;
             }
@@ -181,9 +184,8 @@ namespace otter {
             std::vector<std::shared_ptr<baseAST>> Statements;
             bool flag;
 
-            functionAST(auto& null = nullptr) : baseAST(AstID::FunctionID),
-                    flag(false){
-            };
+            functionAST(auto& null = nullptr)
+                : baseAST(AstID::FunctionID), flag(false){};
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::FunctionID;
             }
@@ -200,6 +202,8 @@ namespace otter {
                 Types.emplace_back(Type);
             }
 
+            auto setVal(bool Flag) { flag = Flag; }
+
             void addAst(const auto& ast) {
                 Statements.emplace_back(std::move(ast));
             }
@@ -211,15 +215,22 @@ namespace otter {
             std::shared_ptr<baseAST> falseStmt;
 
             ifStatementAST(std::shared_ptr<baseAST> cond)
-                : baseAST(AstID::IfStatementID), Cond(cond), thenStmt(nullptr){};
+                : baseAST(AstID::IfStatementID),
+                  Cond(cond),
+                  thenStmt(nullptr){};
+
+            ifStatementAST(std::string cond)
+                : baseAST(AstID::IfStatementID), thenStmt(nullptr) {
+                Cond = std::make_shared<identifierAST>(cond);
+            };
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::IfStatementID;
             }
 
-            void setVal(const auto& ast){
-                if(thenStmt == nullptr){
+            void setVal(const auto& ast) {
+                if (thenStmt == nullptr) {
                     thenStmt = std::move(ast);
-                }else{
+                } else {
                     falseStmt = std::move(ast);
                 }
             }
@@ -246,9 +257,7 @@ namespace otter {
                 return base->getID() == AstID::ModuleID;
             }
 
-            void addAst(const auto& ast) {
-                Stmt.emplace_back(ast);
-            }
+            void addAst(const auto& ast) { Stmt.emplace_back(ast); }
         };
 
     }  // namespace ast

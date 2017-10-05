@@ -113,16 +113,18 @@ namespace otter {
                                    function[detail::addAST()]);
 
         auto const ifStatement_def =
-            x3::lit("if") >> _bool[detail::sharedAssign<ifStatementAST>()] >>
+            x3::lit("if") >> (funcCall[detail::sharedAssign<ifStatementAST>()] |
+                              id[detail::sharedAssign<ifStatementAST>()] |
+                              _bool[detail::sharedAssign<ifStatementAST>()]) >>
             x3::lit("then") >> addExpr[detail::sharedAdd()] >>
             x3::lit("else") >> addExpr[detail::sharedAdd()];
-
-        auto const funcCall_def = x3::lit('(') >>
-                                  id[detail::sharedAssign<funcCallAST>()] >>
-                                  *(funcCall[detail::addAST()] |
-                                    string[detail::addAST<stringAST>()] |
-                                    addExpr[detail::addAST()]) >>
-                                  x3::lit(')');
+        auto const funcCall_def =
+            x3::lit('(') >>
+            (x3::string("=")[detail::sharedAssign<funcCallAST>()] |
+             id[detail::sharedAssign<funcCallAST>()]) >>
+            *(funcCall[detail::addAST()] | string[detail::addAST<stringAST>()] |
+              addExpr[detail::addAST()]) >>
+            x3::lit(')');
 
         auto const module_def =
             *(variable[detail::addAST()] | funcCall[detail::addAST()]);
