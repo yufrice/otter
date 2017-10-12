@@ -53,6 +53,7 @@ namespace otter {
             id[detail::sharedAssign<identifierAST>()] |
             strict_double[detail::sharedAssign<numberAST>(TypeID::Double)] |
             x3::int_[detail::sharedAssign<numberAST>(TypeID::Int)] |
+            funcCall[detail::assign()] |
             '(' >> addExpr[detail::assign()] >> ')';
         auto const mulExpr_def =
             number[detail::assign()] >>
@@ -121,6 +122,10 @@ namespace otter {
         auto const funcCall_def =
             x3::lit('(') >>
             (x3::string("=")[detail::sharedAssign<funcCallAST>()] |
+             x3::string(">")[detail::sharedAssign<funcCallAST>()] |
+             x3::string("<")[detail::sharedAssign<funcCallAST>()] |
+             x3::string(">=")[detail::sharedAssign<funcCallAST>()] |
+             x3::string("<=")[detail::sharedAssign<funcCallAST>()] |
              id[detail::sharedAssign<funcCallAST>()]) >>
             *(funcCall[detail::addAST()] | string[detail::addAST<stringAST>()] |
               addExpr[detail::addAST()]) >>

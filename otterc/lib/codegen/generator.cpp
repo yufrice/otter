@@ -171,14 +171,13 @@ namespace otter {
                 auto currentInstP = this->Builder->GetInsertPoint();
 
                 auto cond    = this->Generator::generateCond(ifStmt->Cond);
+                auto thenVal = GeneratorGlobalValue(ifStmt->thenStmt);
                 auto falseBB = BasicBlock::Create(
                     this->context.get(), "if.false", currentBB->getParent());
                 auto newEntry = BasicBlock::Create(this->context.get(), "entry",
                                                    currentBB->getParent());
                 this->Builder->CreateCondBr(cond, newEntry, falseBB);
                 auto tmpEnt = this->Entry;
-
-                auto thenVal = GeneratorGlobalValue(ifStmt->thenStmt);
 
                 this->Builder->SetInsertPoint(falseBB);
                 this->Entry   = falseBB;
@@ -233,37 +232,32 @@ namespace otter {
         }
 
         Instruction* Generator::generateCallFunc(
-            const std::shared_ptr<baseAST>& expr,
-            const Function* func) {
+            const std::shared_ptr<baseAST>& expr) {
             std::vector<llvm::Value*> args;
-            if (func == nullptr) {
-                func = this->Entry->getParent();
-            }
             if (auto rawCall = detail::sharedCast<funcCallAST>(expr)) {
                 if (rawCall->Name == "print") {
-                    return generatePrint(expr, func);
+                    return generatePrint(expr);
                 } else if (rawCall->Name == "=") {
-                    return generateLOp(expr, func);
+                    return generateLOp(expr);
                 } else {
-                    for (auto arg = (this->Module->getFunction(rawCall->Name))
-                                        ->arg_begin();
-                         arg !=
-                         (this->Module->getFunction(rawCall->Name))->arg_end();
-                         ++arg) {
-                        this->context.setType(arg->getType());
+                    if (auto cf = this->Module->getFunction(rawCall->Name)) {
+                        for (auto arg = cf->arg_begin(); arg != cf->arg_end();
+                             ++arg) {
+                            this->context.setType(arg->getType());
+                        }
+                        for (auto arg : rawCall->Args) {
+                            args.emplace_back(GeneratorStatement(arg));
+                        }
+                        return CallInst::Create(cf, args);
+                    } else {
+                        throw std::string(rawCall->Name + " was not declar");
                     }
-                    for (auto arg : rawCall->Args) {
-                        args.emplace_back(GeneratorStatement(arg, func));
-                    }
-                    return CallInst::Create(
-                        this->Module->getFunction(rawCall->Name), args);
                 }
             }
         }
 
         Instruction* Generator::generateLOp(
-            const std::shared_ptr<baseAST>& expr,
-            const Function* func) {
+            const std::shared_ptr<baseAST>& expr) {
             if (auto rawCall = detail::sharedCast<funcCallAST>(expr)) {
                 if (rawCall->Args.size() > 2) {
                     throw std::string("too many arguments to function op(any)");
@@ -273,8 +267,8 @@ namespace otter {
                 auto op    = rawCall->Name;
                 auto args0 = rawCall->Args.at(0);
                 auto args1 = rawCall->Args.at(1);
-                auto lhs   = GeneratorStatement(args0, func);
-                auto rhs   = GeneratorStatement(args1, func);
+                auto lhs   = GeneratorStatement(args0);
+                auto rhs   = GeneratorStatement(args1);
                 return CmpInst::Create(
                     detail::op2lop(op, detail::type2type(lhs->getType(),
                                                          this->context.get())),
@@ -282,8 +276,8 @@ namespace otter {
             }
         }
 
-        CallInst* Generator::generatePrint(const std::shared_ptr<baseAST>& expr,
-                                           const Function* func) {
+        CallInst* Generator::generatePrint(
+            const std::shared_ptr<baseAST>& expr) {
             if (auto rawCall = detail::sharedCast<funcCallAST>(expr)) {
                 if (rawCall->Args.size() != 1) {
                     throw std::string(
@@ -294,7 +288,7 @@ namespace otter {
                 }
 
                 if (auto args = rawCall->Args.at(0)) {
-                    auto val  = GeneratorStatement(args, func);
+                    auto val  = GeneratorStatement(args);
                     auto type = val->getType();
                     if (type->isPointerTy()) {
                         if (type->getPointerElementType()->isFunctionTy()) {
@@ -394,7 +388,7 @@ namespace otter {
                 this->Entry = bblock;
 
                 for (auto& st : rawVal->Statements) {
-                    ret = GeneratorStatement(st, func);
+                    ret = GeneratorStatement(st);
                 }
                 this->context.setCFunc(false);
                 if (var->Type == TypeID::Unit) {
@@ -406,8 +400,9 @@ namespace otter {
                     if (ret->getType()->isPointerTy()) {
                         auto retLoad = this->Builder->CreateLoad(ret);
                         this->Builder->CreateRet(retLoad);
+                    } else {
+                        this->Builder->CreateRet(ret);
                     }
-                    this->Builder->CreateRet(ret);
                 }
                 if (detail::pointerType(ret->getType()) !=
                     detail::type2type(var->Type, this->context.get())) {
@@ -422,13 +417,12 @@ namespace otter {
             }
         }
 
-        Value* Generator::GeneratorStatement(std::shared_ptr<baseAST> stmt,
-                                             const Function* func) {
+        Value* Generator::GeneratorStatement(std::shared_ptr<baseAST> stmt) {
+            auto vTable = this->Entry->getValueSymbolTable();
             if (detail::sharedIsa<funcCallAST>(stmt)) {
-                return addModuleInst(generateCallFunc(stmt, func),
+                return addModuleInst(generateCallFunc(stmt),
                                      this->context.getCFunc());
             } else if (detail::sharedIsa<identifierAST>(stmt)) {
-                auto vTable  = func->getValueSymbolTable();
                 auto gvTable = this->Module->getValueSymbolTable();
                 llvm::Value* val;
                 if (auto rawID = detail::sharedCast<identifierAST>(stmt)) {
@@ -443,11 +437,9 @@ namespace otter {
                 }
             } else if (detail::sharedIsa<variableAST>(stmt)) {
                 return generateVariable(
-                    detail::shared4Shared<variableAST>(stmt),
-                    func->getValueSymbolTable());
+                    detail::shared4Shared<variableAST>(stmt), vTable);
             } else if (detail::sharedIsa<binaryExprAST>(stmt)) {
-                auto value = this->GeneratorGlobalValue(
-                    stmt, func->getValueSymbolTable());
+                auto value = this->GeneratorGlobalValue(stmt, vTable);
                 return value;
             } else if (detail::sharedIsa<numberAST>(stmt)) {
                 if (auto rawNum = detail::sharedCast<numberAST>(stmt)) {
@@ -571,14 +563,19 @@ namespace otter {
                 throw std::string(rawVal->Ident + " was not declar");
             } else if (detail::sharedIsa<numberAST>(var)) {
                 return detail::constantGet(std::move(var), this->context.get());
+            } else if (detail::sharedIsa<funcCallAST>(var)) {
+                return addModuleInst(generateCallFunc(var),
+                                     this->context.getCFunc());
             } else if (auto rawVal = detail::sharedCast<binaryExprAST>(var)) {
                 auto lhs = GeneratorGlobalValue(rawVal->Lhs, std::move(vTable));
                 auto rhs = GeneratorGlobalValue(rawVal->Rhs, std::move(vTable));
-                return addModuleInst(BinaryOperator::Create(
-                    detail::op2op(
-                        rawVal->Op,
-                        detail::type2type(lhs->getType(), this->context.get())),
-                    lhs, rhs));
+                return addModuleInst(
+                    BinaryOperator::Create(
+                        detail::op2op(rawVal->Op,
+                                      detail::type2type(lhs->getType(),
+                                                        this->context.get())),
+                        lhs, rhs),
+                    this->context.getCFunc());
             } else if (rawVal->Lhs) {
                 return GeneratorGlobalValue(rawVal->Lhs, std::move(vTable));
             } else {
