@@ -170,33 +170,25 @@ namespace otter {
                 auto currentBB    = this->Builder->GetInsertBlock();
                 auto currentInstP = this->Builder->GetInsertPoint();
 
-                auto cond   = this->Generator::generateCond(ifStmt->Cond);
-                auto thenBB = BasicBlock::Create(this->context.get(), "if.then",
-                                                 currentBB->getParent());
+                auto cond    = this->Generator::generateCond(ifStmt->Cond);
                 auto falseBB = BasicBlock::Create(
                     this->context.get(), "if.false", currentBB->getParent());
                 auto newEntry = BasicBlock::Create(this->context.get(), "entry",
                                                    currentBB->getParent());
-                this->Builder->CreateCondBr(cond, thenBB, falseBB);
-                this->Entry = newEntry;
+                this->Builder->CreateCondBr(cond, newEntry, falseBB);
+                auto tmpEnt = this->Entry;
 
-                this->Builder->SetInsertPoint(thenBB);
-                this->Entry  = thenBB;
                 auto thenVal = GeneratorGlobalValue(ifStmt->thenStmt);
-                this->Entry  = newEntry;
-                this->Builder->CreateAlloca(type, thenVal);
-                this->Builder->CreateBr(this->Entry);
 
                 this->Builder->SetInsertPoint(falseBB);
                 this->Entry   = falseBB;
                 auto falseVal = GeneratorGlobalValue(ifStmt->falseStmt);
                 this->Entry   = newEntry;
-                this->Builder->CreateAlloca(type, falseVal);
                 this->Builder->CreateBr(this->Entry);
 
                 this->Builder->SetInsertPoint(this->Entry);
                 auto phi = this->Builder->CreatePHI(type, 2);
-                phi->addIncoming(thenVal, thenBB);
+                phi->addIncoming(thenVal, tmpEnt);
                 phi->addIncoming(falseVal, falseBB);
 
                 return phi;
@@ -398,6 +390,8 @@ namespace otter {
                 Value* ret;
 
                 this->context.setCFunc(true);
+                auto mEntry = this->Entry;
+                this->Entry = bblock;
 
                 for (auto& st : rawVal->Statements) {
                     ret = GeneratorStatement(st, func);
@@ -405,10 +399,15 @@ namespace otter {
                 this->context.setCFunc(false);
                 if (var->Type == TypeID::Unit) {
                     Builder->CreateRetVoid();
-                    this->Builder->SetInsertPoint(this->Entry);
+                    this->Builder->SetInsertPoint(mEntry);
+                    this->Entry = mEntry;
                     return func;
                 } else {
-                    Builder->CreateRet(ret);
+                    if (ret->getType()->isPointerTy()) {
+                        auto retLoad = this->Builder->CreateLoad(ret);
+                        this->Builder->CreateRet(retLoad);
+                    }
+                    this->Builder->CreateRet(ret);
                 }
                 if (detail::pointerType(ret->getType()) !=
                     detail::type2type(var->Type, this->context.get())) {
@@ -417,7 +416,8 @@ namespace otter {
                                        ret->getType(), this->context.get())),
                         getType(var->Type), "ret");
                 }
-                this->Builder->SetInsertPoint(this->Entry);
+                this->Builder->SetInsertPoint(mEntry);
+                this->Entry = mEntry;
                 return func;
             }
         }
@@ -466,6 +466,8 @@ namespace otter {
                     return Builder->CreateGlobalStringPtr(rawStr->Str);
                 }
             } else if (detail::sharedIsa<ifStatementAST>(stmt)) {
+                // ret if
+                throw std::string("ret if");
             }
         }
 
@@ -478,6 +480,12 @@ namespace otter {
                 if (TypeID::String == var->Type) {
                     return this->generateString(var);
                 }
+            } else if (detail::sharedIsa<ifStatementAST>(var->Val)) {
+                auto constant = generateifStmt(var);
+                auto alloca   = this->Builder->CreateAlloca(constant->getType(),
+                                                          0, var->Name);
+                this->Builder->CreateStore(constant, alloca);
+                return vTable->lookup(var->Name);
             }
 
             Value* constant;
@@ -538,6 +546,11 @@ namespace otter {
             if (auto rawVal = detail::sharedCast<identifierAST>(var)) {
                 if (vTable != nullptr) {
                     if (auto id = vTable->lookup(rawVal->Ident)) {
+                        return id;
+                    }
+                } else {
+                    if (auto id = this->Entry->getValueSymbolTable()->lookup(
+                            rawVal->Ident)) {
                         return id;
                     }
                 }
