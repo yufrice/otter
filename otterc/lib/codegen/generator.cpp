@@ -14,12 +14,12 @@ namespace otter {
 
         llvm::Instruction* Generator::addModuleInst(llvm::Instruction* inst,
                                                     bool flag) {
-            if (flag) {
-                this->Builder->Insert(inst);
-            } else {
-                auto retEnd = --(this->Entry->end());
-                this->Entry->getInstList().insert(retEnd, inst);
-            }
+            // if (flag) {
+            this->Builder->Insert(inst);
+            // } else {
+            //     auto retEnd = --(this->Entry->end());
+            //     this->Entry->getInstList().insert(retEnd, inst);
+            // }
             return inst;
         }
 
@@ -237,7 +237,9 @@ namespace otter {
             if (auto rawCall = detail::sharedCast<funcCallAST>(expr)) {
                 if (rawCall->Name == "print") {
                     return generatePrint(expr);
-                } else if (rawCall->Name == "=") {
+                } else if (rawCall->Name == "=" | rawCall->Name == ">" |
+                           rawCall->Name == "<" | rawCall->Name == ">=" |
+                           rawCall->Name == "<=") {
                     return generateLOp(expr);
                 } else {
                     if (auto cf = this->Module->getFunction(rawCall->Name)) {
@@ -269,6 +271,18 @@ namespace otter {
                 auto args1 = rawCall->Args.at(1);
                 auto lhs   = GeneratorStatement(args0);
                 auto rhs   = GeneratorStatement(args1);
+                CmpInst::Predicate prd;
+                if (rawCall->Name == "=") {
+                    prd = CmpInst::ICMP_EQ;
+                } else if (rawCall->Name == ">") {
+                    prd = CmpInst::ICMP_SGT;
+                } else if (rawCall->Name == "<") {
+                    prd = CmpInst::ICMP_SLT;
+                } else if (rawCall->Name == ">=") {
+                    prd = CmpInst::ICMP_SGE;
+                } else if (rawCall->Name == ">=") {
+                    prd = CmpInst::ICMP_SLE;
+                }
                 return CmpInst::Create(
                     detail::op2lop(op, detail::type2type(lhs->getType(),
                                                          this->context.get())),

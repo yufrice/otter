@@ -122,10 +122,10 @@ namespace otter {
         auto const funcCall_def =
             x3::lit('(') >>
             (x3::string("=")[detail::sharedAssign<funcCallAST>()] |
-             x3::string(">")[detail::sharedAssign<funcCallAST>()] |
-             x3::string("<")[detail::sharedAssign<funcCallAST>()] |
              x3::string(">=")[detail::sharedAssign<funcCallAST>()] |
              x3::string("<=")[detail::sharedAssign<funcCallAST>()] |
+             x3::string(">")[detail::sharedAssign<funcCallAST>()] |
+             x3::string("<")[detail::sharedAssign<funcCallAST>()] |
              id[detail::sharedAssign<funcCallAST>()]) >>
             *(funcCall[detail::addAST()] | string[detail::addAST<stringAST>()] |
               addExpr[detail::addAST()]) >>
