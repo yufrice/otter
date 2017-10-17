@@ -271,22 +271,20 @@ namespace otter {
                 auto args1 = rawCall->Args.at(1);
                 auto lhs   = GeneratorStatement(args0);
                 auto rhs   = GeneratorStatement(args1);
-                CmpInst::Predicate prd;
-                if (rawCall->Name == "=") {
-                    prd = CmpInst::ICMP_EQ;
-                } else if (rawCall->Name == ">") {
-                    prd = CmpInst::ICMP_SGT;
-                } else if (rawCall->Name == "<") {
-                    prd = CmpInst::ICMP_SLT;
-                } else if (rawCall->Name == ">=") {
-                    prd = CmpInst::ICMP_SGE;
-                } else if (rawCall->Name == ">=") {
-                    prd = CmpInst::ICMP_SLE;
+
+                Instruction::OtherOps type;
+                if(lhs->getType() != rhs->getType()){
+                    throw std::string("dame");
+                }else if(lhs->getType()->isIntegerTy()){
+                    type = Instruction::ICmp;
+                }else if(lhs->getType()->isDoubleTy()){
+                    type = Instruction::FCmp;
                 }
-                return CmpInst::Create(
-                    detail::op2lop(op, detail::type2type(lhs->getType(),
-                                                         this->context.get())),
-                    CmpInst::ICMP_EQ, lhs, rhs);
+
+                return CmpInst::Create(type, 
+                    detail::op2lop(rawCall->Name, 
+                        detail::type2type(lhs->getType(), this->context.get()
+                    )), lhs, rhs);
             }
         }
 

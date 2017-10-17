@@ -165,9 +165,25 @@ namespace otter {
                                        const ast::TypeID& type) {
                 auto pair = std::make_pair(op, type);
                 if (equalPair(pair, "=", ast::TypeID::Int)) {
-                    return llvm::Instruction::ICmp;
+                    return llvm::CmpInst::ICMP_EQ;
                 } else if (equalPair(pair, "=", ast::TypeID::Double)) {
-                    return llvm::Instruction::FCmp;
+                    return llvm::CmpInst::FCMP_OEQ;
+                } else if (equalPair(pair, ">", ast::TypeID::Int)) {
+                    return llvm::CmpInst::ICMP_SGT;
+                } else if (equalPair(pair, ">", ast::TypeID::Double)) {
+                    return llvm::CmpInst::FCMP_OGT;
+                } else if (equalPair(pair, "<", ast::TypeID::Int)) {
+                    return llvm::CmpInst::ICMP_SLT;
+                } else if (equalPair(pair, "<", ast::TypeID::Double)) {
+                    return llvm::CmpInst::FCMP_OLT;
+                } else if (equalPair(pair, ">=", ast::TypeID::Int)) {
+                    return llvm::CmpInst::ICMP_SGE;
+                } else if (equalPair(pair, ">=", ast::TypeID::Double)) {
+                    return llvm::CmpInst::FCMP_OGE;
+                } else if (equalPair(pair, "<=", ast::TypeID::Int)) {
+                    return llvm::CmpInst::ICMP_SLE;
+                } else if (equalPair(pair, "<=", ast::TypeID::Double)) {
+                    return llvm::CmpInst::FCMP_OLE;
                 }
             };
 
