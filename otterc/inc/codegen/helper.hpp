@@ -91,12 +91,12 @@ namespace otter {
 
             decltype(auto) stdOutType = [](llvm::Type* Type,
                                            std::string& format) {
-                if (Type->isArrayTy() || Type->isIntegerTy(8)) {
-                    format = "%s\n";
-                } else if (Type->isIntegerTy(32)) {
+                if (Type->isIntegerTy(32)) {
                     format = "%d\n";
                 } else if (Type->isDoubleTy()) {
                     format = "%lf\n";
+                }else {
+                    format = "%s\n";
                 }
             };
 
@@ -108,6 +108,18 @@ namespace otter {
                 } else if (name == "%lf\n") {
                     return "realFormat";
                 }
+            };
+
+            decltype(auto) i12Bool  = [](const llvm::Value* val) -> std::string {
+                std::cout << val->getPointerAlignment() << std::endl;
+                if(auto constant = llvm::dyn_cast<llvm::ConstantInt>(val)){
+                    if(constant->isNegativeZeroValue()){
+                        return "False";
+                    }else{
+                        return "True";
+                    }
+                }
+                throw std::string("helper:121");
             };
 
             decltype(auto) pointerType = [](llvm::Type* type) -> llvm::Type* {
@@ -168,6 +180,10 @@ namespace otter {
                     return llvm::CmpInst::ICMP_EQ;
                 } else if (equalPair(pair, "=", ast::TypeID::Double)) {
                     return llvm::CmpInst::FCMP_OEQ;
+                } else if (equalPair(pair, "<>", ast::TypeID::Int)) {
+                    return llvm::CmpInst::ICMP_NE;
+                } else if (equalPair(pair, "<>", ast::TypeID::Double)) {
+                    return llvm::CmpInst::FCMP_ONE;
                 } else if (equalPair(pair, ">", ast::TypeID::Int)) {
                     return llvm::CmpInst::ICMP_SGT;
                 } else if (equalPair(pair, ">", ast::TypeID::Double)) {

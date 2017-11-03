@@ -34,7 +34,7 @@ namespace otter {
                 std::shared_ptr<variableAST>);
             llvm::Value* generateVariable(const std::shared_ptr<variableAST>&,
                                           auto);
-            llvm::Value* generateifStmt(const std::shared_ptr<variableAST>&);
+            llvm::Value* generateifStmt(const std::shared_ptr<baseAST>&);
             llvm::Value* generateCond(const std::shared_ptr<baseAST>&);
             llvm::Value* generateString(std::shared_ptr<variableAST>);
             llvm::Instruction* generateCallFunc(

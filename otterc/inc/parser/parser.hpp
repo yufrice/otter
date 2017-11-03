@@ -84,8 +84,8 @@ namespace otter {
             *(id[detail::sharedAdd()] >> type[detail::sharedAdd()]) >>
             x3::lit(')') >>
             *(funcCall[detail::addAST()] | variable[detail::addAST()]) >>
-            ((addExpr[detail::addAST()] |
-              string[detail::addAST<stringAST>()]) | ifStatement[detail::addAST()] >>
+            ((ifStatement[detail::addAST()] | addExpr[detail::addAST()] |
+              string[detail::addAST<stringAST>()]) >>
                  x3::lit(";") |
              x3::lit(";"));
 
@@ -122,6 +122,7 @@ namespace otter {
         auto const funcCall_def =
             x3::lit('(') >>
             (x3::string("=")[detail::sharedAssign<funcCallAST>()] |
+             x3::string("<>")[detail::sharedAssign<funcCallAST>()] |
              x3::string(">=")[detail::sharedAssign<funcCallAST>()] |
              x3::string("<=")[detail::sharedAssign<funcCallAST>()] |
              x3::string(">")[detail::sharedAssign<funcCallAST>()] |
