@@ -91,12 +91,12 @@ namespace otter {
 
             decltype(auto) stdOutType = [](llvm::Type* Type,
                                            std::string& format) {
-                if (Type->isArrayTy() || Type->isIntegerTy(8)) {
-                    format = "%s\n";
-                } else if (Type->isIntegerTy(32)) {
+                if (Type->isIntegerTy(32)) {
                     format = "%d\n";
                 } else if (Type->isDoubleTy()) {
                     format = "%lf\n";
+                } else {
+                    format = "%s\n";
                 }
             };
 
@@ -108,6 +108,18 @@ namespace otter {
                 } else if (name == "%lf\n") {
                     return "realFormat";
                 }
+            };
+
+            decltype(auto) i12Bool = [](const llvm::Value* val) -> std::string {
+                val->dump();
+                if (auto constant = llvm::dyn_cast<llvm::ConstantInt>(val)) {
+                    if (constant->isNegativeZeroValue()) {
+                        return "False";
+                    } else {
+                        return "True";
+                    }
+                }
+                throw std::string("helper:121");
             };
 
             decltype(auto) pointerType = [](llvm::Type* type) -> llvm::Type* {
@@ -165,9 +177,29 @@ namespace otter {
                                        const ast::TypeID& type) {
                 auto pair = std::make_pair(op, type);
                 if (equalPair(pair, "=", ast::TypeID::Int)) {
-                    return llvm::Instruction::ICmp;
+                    return llvm::CmpInst::ICMP_EQ;
                 } else if (equalPair(pair, "=", ast::TypeID::Double)) {
-                    return llvm::Instruction::FCmp;
+                    return llvm::CmpInst::FCMP_OEQ;
+                } else if (equalPair(pair, "<>", ast::TypeID::Int)) {
+                    return llvm::CmpInst::ICMP_NE;
+                } else if (equalPair(pair, "<>", ast::TypeID::Double)) {
+                    return llvm::CmpInst::FCMP_ONE;
+                } else if (equalPair(pair, ">", ast::TypeID::Int)) {
+                    return llvm::CmpInst::ICMP_SGT;
+                } else if (equalPair(pair, ">", ast::TypeID::Double)) {
+                    return llvm::CmpInst::FCMP_OGT;
+                } else if (equalPair(pair, "<", ast::TypeID::Int)) {
+                    return llvm::CmpInst::ICMP_SLT;
+                } else if (equalPair(pair, "<", ast::TypeID::Double)) {
+                    return llvm::CmpInst::FCMP_OLT;
+                } else if (equalPair(pair, ">=", ast::TypeID::Int)) {
+                    return llvm::CmpInst::ICMP_SGE;
+                } else if (equalPair(pair, ">=", ast::TypeID::Double)) {
+                    return llvm::CmpInst::FCMP_OGE;
+                } else if (equalPair(pair, "<=", ast::TypeID::Int)) {
+                    return llvm::CmpInst::ICMP_SLE;
+                } else if (equalPair(pair, "<=", ast::TypeID::Double)) {
+                    return llvm::CmpInst::FCMP_OLE;
                 }
             };
 

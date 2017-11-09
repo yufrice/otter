@@ -84,7 +84,7 @@ namespace otter {
             *(id[detail::sharedAdd()] >> type[detail::sharedAdd()]) >>
             x3::lit(')') >>
             *(funcCall[detail::addAST()] | variable[detail::addAST()]) >>
-            ((addExpr[detail::addAST()] |
+            ((ifStatement[detail::addAST()] | addExpr[detail::addAST()] |
               string[detail::addAST<stringAST>()]) >>
                  x3::lit(";") |
              x3::lit(";"));
@@ -111,9 +111,9 @@ namespace otter {
                                    function[detail::addAST()]);
 
         auto const ifStatement_def =
-            x3::lit("if") >> (funcCall[detail::sharedAssign<ifStatementAST>()] |
-                              id[detail::sharedAssign<ifStatementAST>()] |
-                              _bool[detail::sharedAssign<ifStatementAST>()]) >>
+            x3::lit("if") >> (_bool[detail::sharedAssign<ifStatementAST>()] |
+                              funcCall[detail::sharedAssign<ifStatementAST>()] |
+                              id[detail::sharedAssign<ifStatementAST>()]) >>
             x3::lit("then") >>
             (addExpr[detail::sharedAdd()] | funcCall[detail::sharedAdd()]) >>
             x3::lit("else") >>
@@ -122,10 +122,11 @@ namespace otter {
         auto const funcCall_def =
             x3::lit('(') >>
             (x3::string("=")[detail::sharedAssign<funcCallAST>()] |
-             x3::string(">")[detail::sharedAssign<funcCallAST>()] |
-             x3::string("<")[detail::sharedAssign<funcCallAST>()] |
+             x3::string("<>")[detail::sharedAssign<funcCallAST>()] |
              x3::string(">=")[detail::sharedAssign<funcCallAST>()] |
              x3::string("<=")[detail::sharedAssign<funcCallAST>()] |
+             x3::string(">")[detail::sharedAssign<funcCallAST>()] |
+             x3::string("<")[detail::sharedAssign<funcCallAST>()] |
              id[detail::sharedAssign<funcCallAST>()]) >>
             *(funcCall[detail::addAST()] | string[detail::addAST<stringAST>()] |
               addExpr[detail::addAST()]) >>

@@ -14,12 +14,12 @@ namespace otter {
 
         llvm::Instruction* Generator::addModuleInst(llvm::Instruction* inst,
                                                     bool flag) {
-            if (flag) {
-                this->Builder->Insert(inst);
-            } else {
-                auto retEnd = --(this->Entry->end());
-                this->Entry->getInstList().insert(retEnd, inst);
-            }
+            // if (flag) {
+            this->Builder->Insert(inst);
+            // } else {
+            //     auto retEnd = --(this->Entry->end());
+            //     this->Entry->getInstList().insert(retEnd, inst);
+            // }
             return inst;
         }
 
@@ -81,7 +81,8 @@ namespace otter {
                     var->Name);
                 gvar->setInitializer(
                     detail::constantGet(var->Type, this->context.get()));
-                this->Builder->CreateStore(this->generateifStmt(var), gvar);
+                this->Builder->CreateStore(this->generateifStmt(var->Val),
+                                           gvar);
                 return gvar;
             } else if (detail::sharedIsa<boolAST>(var->Val)) {
                 if (auto rawBool = detail::sharedCast<boolAST>(var->Val)) {
@@ -162,11 +163,8 @@ namespace otter {
             }
         }
 
-        Value* Generator::generateifStmt(
-            const std::shared_ptr<variableAST>& ast) {
-            if (auto ifStmt = detail::sharedCast<ifStatementAST>(ast->Val)) {
-                auto type = detail::type2type(ast->Type, this->context.get());
-
+        Value* Generator::generateifStmt(const std::shared_ptr<baseAST>& ast) {
+            if (auto ifStmt = detail::sharedCast<ifStatementAST>(ast)) {
                 auto currentBB    = this->Builder->GetInsertBlock();
                 auto currentInstP = this->Builder->GetInsertPoint();
 
@@ -182,11 +180,14 @@ namespace otter {
                 this->Builder->SetInsertPoint(falseBB);
                 this->Entry   = falseBB;
                 auto falseVal = GeneratorGlobalValue(ifStmt->falseStmt);
-                this->Entry   = newEntry;
+                if (thenVal->getType() != falseVal->getType()) {
+                    throw std::string("dame");
+                }
+                this->Entry = newEntry;
                 this->Builder->CreateBr(this->Entry);
 
                 this->Builder->SetInsertPoint(this->Entry);
-                auto phi = this->Builder->CreatePHI(type, 2);
+                auto phi = this->Builder->CreatePHI(thenVal->getType(), 2);
                 phi->addIncoming(thenVal, tmpEnt);
                 phi->addIncoming(falseVal, falseBB);
 
@@ -237,7 +238,9 @@ namespace otter {
             if (auto rawCall = detail::sharedCast<funcCallAST>(expr)) {
                 if (rawCall->Name == "print") {
                     return generatePrint(expr);
-                } else if (rawCall->Name == "=") {
+                } else if (rawCall->Name == "=" | rawCall->Name == ">" |
+                           rawCall->Name == "<" | rawCall->Name == ">=" |
+                           rawCall->Name == "<=" | rawCall->Name == "<>") {
                     return generateLOp(expr);
                 } else {
                     if (auto cf = this->Module->getFunction(rawCall->Name)) {
@@ -264,15 +267,28 @@ namespace otter {
                 } else if (rawCall->Args.size() == 0) {
                     throw std::string("too few arguments to function op(any)");
                 }
-                auto op    = rawCall->Name;
                 auto args0 = rawCall->Args.at(0);
                 auto args1 = rawCall->Args.at(1);
                 auto lhs   = GeneratorStatement(args0);
                 auto rhs   = GeneratorStatement(args1);
+
+                Instruction::OtherOps type;
+                if (lhs->getType() != rhs->getType()) {
+                    throw std::string("dame");
+                } else if (lhs->getType()->isIntegerTy()) {
+                    type = Instruction::ICmp;
+                } else if (lhs->getType()->isDoubleTy()) {
+                    type = Instruction::FCmp;
+                } else {
+                    throw std::string("dame");
+                }
+
                 return CmpInst::Create(
-                    detail::op2lop(op, detail::type2type(lhs->getType(),
-                                                         this->context.get())),
-                    CmpInst::ICMP_EQ, lhs, rhs);
+                    type,
+                    detail::op2lop(
+                        rawCall->Name,
+                        detail::type2type(lhs->getType(), this->context.get())),
+                    lhs, rhs);
             }
         }
 
@@ -322,6 +338,25 @@ namespace otter {
                             val = this->Builder->CreateLoad(val);
                         }
                     }
+
+                    if (detail::pointerType(type)->isIntegerTy(1)) {
+                        if (type->isPointerTy()) {
+                            // val = this->Builder->CreateLoad(val);
+                        }
+                        val           = this->Builder->CreateLoad(val);
+                        auto constant = detail::i12Bool(val);
+
+                        ArrayType* Type =
+                            ArrayType::get(IntegerType::get(context.get(), 8),
+                                           constant.length() + 2);
+                        Constant* strCons = ConstantDataArray::getString(
+                            context.get(), constant);
+                        auto alloca = this->Builder->CreateAlloca(Type, 0, "");
+                        this->Builder->CreateStore(
+                            dyn_cast<llvm::Value>(strCons), alloca);
+                        val = alloca;
+                    }
+
                     argValue.emplace_back(val);
                     FunctionType* func_type = FunctionType::get(
                         Type::getInt32Ty(context.get()),
@@ -427,8 +462,9 @@ namespace otter {
                 llvm::Value* val;
                 if (auto rawID = detail::sharedCast<identifierAST>(stmt)) {
                     if (auto id = vTable->lookup(rawID->Ident)) {
-                        val = id;
+                        return id;
                     } else if (auto id = gvTable.lookup(rawID->Ident)) {
+                        return this->Builder->CreateLoad(id);
                         val = id;
                     } else {
                         throw std::string(rawID->Ident + " was not declar");
@@ -439,8 +475,7 @@ namespace otter {
                 return generateVariable(
                     detail::shared4Shared<variableAST>(stmt), vTable);
             } else if (detail::sharedIsa<binaryExprAST>(stmt)) {
-                auto value = this->GeneratorGlobalValue(stmt, vTable);
-                return value;
+                return this->GeneratorGlobalValue(stmt, vTable);
             } else if (detail::sharedIsa<numberAST>(stmt)) {
                 if (auto rawNum = detail::sharedCast<numberAST>(stmt)) {
                     if (ast::TypeID::Double == rawNum->Type) {
@@ -458,8 +493,7 @@ namespace otter {
                     return Builder->CreateGlobalStringPtr(rawStr->Str);
                 }
             } else if (detail::sharedIsa<ifStatementAST>(stmt)) {
-                // ret if
-                throw std::string("ret if");
+                return generateifStmt(stmt);
             }
         }
 
@@ -473,7 +507,7 @@ namespace otter {
                     return this->generateString(var);
                 }
             } else if (detail::sharedIsa<ifStatementAST>(var->Val)) {
-                auto constant = generateifStmt(var);
+                auto constant = generateifStmt(var->Val);
                 auto alloca   = this->Builder->CreateAlloca(constant->getType(),
                                                           0, var->Name);
                 this->Builder->CreateStore(constant, alloca);
