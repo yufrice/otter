@@ -340,9 +340,6 @@ namespace otter {
                     }
 
                     if (detail::pointerType(type)->isIntegerTy(1)) {
-                        if (type->isPointerTy()) {
-                            // val = this->Builder->CreateLoad(val);
-                        }
                         val           = this->Builder->CreateLoad(val);
                         auto constant = detail::i12Bool(val);
 

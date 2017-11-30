@@ -115,9 +115,11 @@ namespace otter {
                               funcCall[detail::sharedAssign<ifStatementAST>()] |
                               id[detail::sharedAssign<ifStatementAST>()]) >>
             x3::lit("then") >>
-            (addExpr[detail::sharedAdd()] | funcCall[detail::sharedAdd()]) >>
+            (ifStatement[detail::sharedAdd()] | addExpr[detail::sharedAdd()] |
+             funcCall[detail::sharedAdd()]) >>
             x3::lit("else") >>
-            (addExpr[detail::sharedAdd()] | funcCall[detail::sharedAdd()]);
+            (ifStatement[detail::sharedAdd()] | addExpr[detail::sharedAdd()] |
+             funcCall[detail::sharedAdd()]);
 
         auto const funcCall_def =
             x3::lit('(') >>
