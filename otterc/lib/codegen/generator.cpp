@@ -169,7 +169,7 @@ namespace otter {
                 auto currentInstP = this->Builder->GetInsertPoint();
 
                 auto cond    = this->Generator::generateCond(ifStmt->Cond);
-                auto thenVal = GeneratorGlobalValue(ifStmt->thenStmt);
+                auto thenVal = GeneratorStatement(ifStmt->thenStmt);
                 auto falseBB = BasicBlock::Create(
                     this->context.get(), "if.false", currentBB->getParent());
                 auto newEntry = BasicBlock::Create(this->context.get(), "entry",
@@ -179,7 +179,7 @@ namespace otter {
 
                 this->Builder->SetInsertPoint(falseBB);
                 this->Entry   = falseBB;
-                auto falseVal = GeneratorGlobalValue(ifStmt->falseStmt);
+                auto falseVal = GeneratorStatement(ifStmt->falseStmt);
                 if (thenVal->getType() != falseVal->getType()) {
                     throw std::string("dame");
                 }
@@ -273,6 +273,7 @@ namespace otter {
                 auto rhs   = GeneratorStatement(args1);
 
                 Instruction::OtherOps type;
+
                 if (lhs->getType() != rhs->getType()) {
                     throw std::string("dame");
                 } else if (lhs->getType()->isIntegerTy()) {

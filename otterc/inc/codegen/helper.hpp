@@ -111,7 +111,6 @@ namespace otter {
             };
 
             decltype(auto) i12Bool = [](const llvm::Value* val) -> std::string {
-                val->dump();
                 if (auto constant = llvm::dyn_cast<llvm::ConstantInt>(val)) {
                     if (constant->isNegativeZeroValue()) {
                         return "False";
