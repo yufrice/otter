@@ -21,6 +21,7 @@ namespace otter {
             BoolID,
             IdentifierID,
             ExprID,
+            ListID,
             MonoExprID,
             BinExprID,
             BindID,
@@ -163,6 +164,18 @@ namespace otter {
             auto getType() -> TypeID& { return this->Type; }
 
             auto getVal() -> std::shared_ptr<baseAST>& { return this->Val; }
+        };
+
+        struct listAST : public baseAST {
+            std::shared_ptr<baseAST> Car;
+            std::shared_ptr<baseAST> Cdr;
+
+            listAST(std::shared_ptr<baseAST> car)
+                : baseAST(AstID::BinExprID), Car(car) {}
+            auto setVal(auto cdr) { Cdr = cdr; }
+            static inline bool classof(baseAST const* base) {
+                return base->getID() == AstID::ListID;
+            }
         };
 
         struct statementsAST : public baseAST {

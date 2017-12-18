@@ -21,9 +21,9 @@ namespace {
                                        llvm::cl::init(false),
                                        llvm::cl::cat(CompilerCategory));
     static llvm::cl::opt<bool> DebugOpt("debug",
-                                       llvm::cl::desc("Display debug log."),
-                                       llvm::cl::init(false),
-                                       llvm::cl::cat(CompilerCategory));
+                                        llvm::cl::desc("Display debug log."),
+                                        llvm::cl::init(false),
+                                        llvm::cl::cat(CompilerCategory));
 }
 
 int main(int argc, char** argv) {
@@ -33,6 +33,10 @@ int main(int argc, char** argv) {
 
     llvm::cl::HideUnrelatedOptions(CompilerCategory);
     llvm::cl::ParseCommandLineOptions(argc, argv);
+
+    logger::Logger logger(DebugOpt);
+
+    logger._assert("Start Process");
 
     try {
         std::ostringstream Input(InputFilename.c_str());
@@ -48,6 +52,7 @@ int main(int argc, char** argv) {
             throw std::string("Failed to open");
         }
 
+        logger._assert("File import");
         std::string src;
         {
             std::string tmp;
@@ -56,11 +61,15 @@ int main(int argc, char** argv) {
                 src += "\n";
             }
         }
+        logger._assert("import fnish");
 
+        logger._assert("pars start");
         auto result  = std::make_shared<ast::moduleAST>();
         auto first   = src.begin();
         auto succces = x3::phrase_parse(first, src.end(), parser::module,
                                         parser::skkiper, result);
+
+        logger._assert("pars end");
         if (result && succces && first == src.end()) {
             // pre check
             semantics::preCheck pck(result);
@@ -71,9 +80,9 @@ int main(int argc, char** argv) {
             auto const& context =
                 context::Context(std::move(codeGen->generatorModule(result)),
                                  OutputFilename.c_str(), DumpOpt);
-            if(DebugOpt){
+            if (DebugOpt) {
                 context.Module->print(llvm::dbgs(), nullptr);
-            }else{
+            } else {
                 auto driver = driver::Driver(context);
                 driver.BinaryOut();
             }

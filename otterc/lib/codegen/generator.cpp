@@ -73,6 +73,8 @@ namespace otter {
             const std::shared_ptr<variableAST>& var) {
             if (detail::sharedIsa<functionAST>(var->Val)) {
                 return this->GeneratorFunction(var);
+            } else if (detail::sharedIsa<listAST>(var->Val)) {
+                throw std::string("wip");
             } else if (detail::sharedIsa<ifStatementAST>(var->Val)) {
                 auto gvar = new GlobalVariable(
                     *this->Module,

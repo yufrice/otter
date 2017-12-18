@@ -28,6 +28,8 @@ namespace otter {
         x3::rule<class lambda, std::shared_ptr<functionAST>> const lambda(
             "lambda");
 
+        x3::rule<class list, std::shared_ptr<listAST>> const list("list");
+
         x3::rule<class expr, std::shared_ptr<baseAST>> const expr("expr");
         x3::rule<class notExpr, std::shared_ptr<monoExprAST>> const notExpr(
             "notExpr");
@@ -79,6 +81,13 @@ namespace otter {
                                 (x3::lit("||")[detail::assign("||")] >>
                                  notExpr[detail::addAST("rhs")]));
 
+        auto const list_def = x3::string("(") >>
+                              (list[detail::sharedAssign<listAST>()] |
+                               addExpr[detail::sharedAssign<listAST>()]) >>
+                              ":" >> (list[detail::sharedAdd()] |
+                                      addExpr[detail::sharedAdd()]) >>
+                              x3::string(")");
+
         auto const function_def =
             x3::string("[](")[detail::sharedAssign<functionAST>()] >>
             *(id[detail::sharedAdd()] >> type[detail::sharedAdd()]) >>
@@ -105,7 +114,8 @@ namespace otter {
         auto const variable_def = x3::lit("let") >>
                                   id[detail::sharedAssign<variableAST>()] >>
                                   type[detail::sharedAdd()] >> "=" >>
-                                  (ifStatement[detail::addAST()] |
+                                  (list[detail::addAST()] |
+                                   ifStatement[detail::addAST()] |
                                    value[detail::addAST()] |
                                    addExpr[detail::addAST()] |
                                    function[detail::addAST()]);
@@ -150,6 +160,7 @@ namespace otter {
                             notExpr,
                             boolExpr,
                             addExpr,
+                            list,
                             mulExpr,
                             number,
                             ifStatement,
