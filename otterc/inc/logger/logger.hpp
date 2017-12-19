@@ -21,11 +21,10 @@ namespace otter {
             }
 
            public:
-            Logger() { startTime = std::chrono::system_clock::now(); }
+            Logger() {}
 
             Logger(bool flag) {
                 this->debugFlag = flag;
-                startTime       = std::chrono::system_clock::now();
             }
 
             void _assert(std::string str) {
@@ -35,9 +34,6 @@ namespace otter {
             }
         };
 
-        bool Logger::debugFlag = false;
-        std::chrono::time_point<std::chrono::system_clock> Logger::startTime =
-            std::chrono::system_clock::now();
     }  // namespace logger
 }  // namespace otter
 

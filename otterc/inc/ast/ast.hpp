@@ -8,8 +8,12 @@
 #include <variant>
 #include <iostream>
 
+#include <logger/logger.hpp>
+
 namespace otter {
     namespace ast {
+
+
         enum struct AstID {
             BaseID,
             FunctionID,
@@ -53,7 +57,8 @@ namespace otter {
             AstID ID;
 
            public:
-            baseAST(AstID id) : ID(id) {}
+            logger::Logger logger;
+            baseAST(AstID id) : ID(id) {};
             virtual ~baseAST() {}
             inline auto getID() const -> AstID { return this->ID; }
         };
@@ -62,7 +67,9 @@ namespace otter {
             std::string Ident;
 
             identifierAST(std::string ident)
-                : baseAST(AstID::IdentifierID), Ident(ident){};
+                : baseAST(AstID::IdentifierID), Ident(ident){
+                    logger._assert("Build IdentifireAST : " + ident);
+                };
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::IdentifierID;
             }
@@ -147,7 +154,9 @@ namespace otter {
             std::shared_ptr<baseAST> Val;
 
             variableAST(std::string name)
-                : baseAST(AstID::BindID), Name(name){};
+                : baseAST(AstID::BindID), Name(name){
+                    logger._assert("Build VariableAST : " + name);
+               };
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::BindID;
             }
@@ -171,7 +180,9 @@ namespace otter {
             std::shared_ptr<baseAST> Cdr;
 
             listAST(std::shared_ptr<baseAST> car)
-                : baseAST(AstID::BinExprID), Car(car) {}
+                : baseAST(AstID::ListID), Car(car) {
+                    logger._assert("Build ListAST");
+                }
             auto setVal(auto cdr) { Cdr = cdr; }
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::ListID;

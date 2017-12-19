@@ -7,6 +7,7 @@
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/ValueSymbolTable.h>
 #include <ast/ast.hpp>
+#include <logger/logger.hpp>
 #include <codegen/context.hpp>
 #include <codegen/helper.hpp>
 
@@ -22,6 +23,7 @@ namespace otter {
                 const std::shared_ptr<moduleAST>& mod);
 
            private:
+            logger::Logger logger;
             Context context;
             llvm::BasicBlock* Entry;
             llvm::IRBuilder<>* Builder;

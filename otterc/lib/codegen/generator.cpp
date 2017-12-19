@@ -8,7 +8,9 @@ namespace otter {
 
         Generator::Generator()
             : Builder(new IRBuilder<>(context.get())),
-              Module(new llvm::Module("OtterModule", context.get())){};
+              Module(new llvm::Module("OtterModule", context.get())){
+                  logger._assert("Build Module");
+              };
 
         Generator::~Generator() { delete this->Builder; }
 
@@ -71,6 +73,7 @@ namespace otter {
 
         Value* Generator::generateGlovalVariable(
             const std::shared_ptr<variableAST>& var) {
+            logger._assert("Add Global Variable : " + var->Name);
             if (detail::sharedIsa<functionAST>(var->Val)) {
                 return this->GeneratorFunction(var);
             } else if (detail::sharedIsa<listAST>(var->Val)) {

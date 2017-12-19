@@ -96,6 +96,7 @@ x86info
 
 
 add_executable(otterc
+	./lib/logger/logger.cpp
 	./lib/context/context.cpp
 	./lib/semantics/preCheck.cpp
 	./lib/codegen/generator.cpp
