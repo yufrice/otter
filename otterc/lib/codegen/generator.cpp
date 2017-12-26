@@ -168,6 +168,8 @@ namespace otter {
             }
         }
 
+        Value* Generator::generateLise(const std::shared_ptr<baseAST>& ast) {}
+
         Value* Generator::generateifStmt(const std::shared_ptr<baseAST>& ast) {
             if (auto ifStmt = detail::sharedCast<ifStatementAST>(ast)) {
                 auto currentBB    = this->Builder->GetInsertBlock();
