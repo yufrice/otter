@@ -77,7 +77,7 @@ namespace otter {
             if (detail::sharedIsa<functionAST>(var->Val)) {
                 return this->GeneratorFunction(var);
             } else if (detail::sharedIsa<listAST>(var->Val)) {
-                throw std::string("wip");
+                return this->generateList(var->Val);
             } else if (detail::sharedIsa<ifStatementAST>(var->Val)) {
                 auto gvar = new GlobalVariable(
                     *this->Module,
@@ -168,7 +168,37 @@ namespace otter {
             }
         }
 
-        Value* Generator::generateLise(const std::shared_ptr<baseAST>& ast) {}
+        Value* Generator::generateList(const std::shared_ptr<baseAST>& list) {
+            if (auto rawList = detail::sharedCast<listAST>(list)) {
+                auto listType = StructType::create(this->context.get(), "consList");
+
+                std::vector<llvm::Type*> members {
+                    this->Builder->getInt32Ty(),
+                    llvm::PointerType::getUnqual(listType),
+                };
+                /*
+                ToDo : doubly linked
+                */
+
+                listType->setBody(members);
+
+                
+
+                auto valueType = llvm::Type::getInt32Ty(this->context.get());
+                auto val = llvm::ConstantInt::getSigned(valueType,
+                                                            0);
+                auto listAlloca  =this->Builder->CreateAlloca(listType);
+                std::vector<llvm::Constant*> mem {
+                    val,
+                    llvm::ConstantPointerNull::get(
+                    llvm::PointerType::getUnqual(listType))
+                };
+
+                auto listConstant = llvm::ConstantStruct::get(listType, mem);
+                this->Builder->CreateStore(listAlloca, listConstant);
+                return listAlloca;
+            }
+        }
 
         Value* Generator::generateifStmt(const std::shared_ptr<baseAST>& ast) {
             if (auto ifStmt = detail::sharedCast<ifStatementAST>(ast)) {
