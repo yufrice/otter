@@ -82,9 +82,8 @@ namespace otter {
                                  notExpr[detail::addAST("rhs")]));
 
         auto const list_def = x3::string("[") >>
-                              (list[detail::sharedAssign<listAST>()] |
-                               addExpr[detail::sharedAssign<listAST>()]) >>
-                              ":" >> (list[detail::sharedAdd()] |
+                               addExpr[detail::sharedAssign<listAST>()] >>
+                              (list[detail::sharedAdd()] |
                                       addExpr[detail::sharedAdd()]) >>
                               x3::string("]");
 
