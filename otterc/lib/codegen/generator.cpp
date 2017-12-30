@@ -38,6 +38,12 @@ namespace otter {
             this->Entry = BasicBlock::Create(context.get(), "entry", mainFunc);
             Builder->SetInsertPoint(this->Entry);
 
+            // init List Type
+            listType = StructType::create(this->context.get(), "consList");
+            this->consMembers.emplace_back(this->Builder->getInt32Ty());
+            this->consMembers.emplace_back(llvm::PointerType::getUnqual(listType));
+            listType->setBody(consMembers);
+
             for (auto stmt : mod->Stmt) {
                 if (detail::sharedIsa<variableAST>(stmt)) {
                     if (auto rawVar =
@@ -170,16 +176,9 @@ namespace otter {
             }
         }
 
+
         Value* Generator::generateList(const std::shared_ptr<baseAST>& list) {
             if (auto rawList = detail::sharedCast<listAST>(list)) {
-                static auto listType = StructType::create(this->context.get(), "consList");
-
-                std::vector<llvm::Type*> members {
-                    this->Builder->getInt32Ty(),
-                    llvm::PointerType::getUnqual(listType),
-                };
-
-                listType->setBody(members);
                 auto carValue = dyn_cast<Constant>(GeneratorGlobalValue(rawList->Car));
 
                 std::vector<llvm::Constant*> listAtom {
