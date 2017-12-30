@@ -85,7 +85,9 @@ namespace otter {
                 list->setName(var->Name);
                 return list;
             } else if (detail::sharedIsa<listAST>(var->Val)) {
-                return this->generateList(var->Val);
+                auto listAlloca  = this->Builder->CreateAlloca(listType);
+                return this->Builder->CreateStore( this->generateList(var->Val),
+                    listAlloca);
             } else if (detail::sharedIsa<ifStatementAST>(var->Val)) {
                 auto gvar = new GlobalVariable(
                     *this->Module,
@@ -199,10 +201,7 @@ namespace otter {
                     listAtom.emplace_back(listConstant);
                 }
 
-                auto listConstant = llvm::ConstantStruct::get(listType, listAtom);
-                auto listAlloca  = this->Builder->CreateAlloca(listType);
-                this->Builder->CreateStore(listConstant, listAlloca);
-                return listConstant;
+                return llvm::ConstantStruct::get(listType, listAtom);
             }
         }
 
