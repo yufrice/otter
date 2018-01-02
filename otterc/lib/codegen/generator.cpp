@@ -39,10 +39,6 @@ namespace otter {
             Builder->SetInsertPoint(this->Entry);
 
             // init List Type
-            listType = StructType::create(this->context.get(), "consList");
-            this->consMembers.emplace_back(this->Builder->getInt32Ty());
-            this->consMembers.emplace_back(llvm::PointerType::getUnqual(listType));
-            listType->setBody(consMembers);
 
             for (auto stmt : mod->Stmt) {
                 if (detail::sharedIsa<variableAST>(stmt)) {
@@ -85,9 +81,9 @@ namespace otter {
                 list->setName(var->Name);
                 return list;
             } else if (detail::sharedIsa<listAST>(var->Val)) {
-                auto listAlloca  = this->Builder->CreateAlloca(listType);
-                return this->Builder->CreateStore( this->generateList(var->Val),
-                    listAlloca);
+                auto list = generateList(var->Val);
+                list->setName(var->Name);
+                return list;
             } else if (detail::sharedIsa<ifStatementAST>(var->Val)) {
                 auto gvar = new GlobalVariable(
                     *this->Module,
@@ -179,29 +175,38 @@ namespace otter {
         }
 
 
-        Value* Generator::generateList(const std::shared_ptr<baseAST>& list) {
+        AllocaInst* Generator::generateList(const std::shared_ptr<baseAST>& list) {
             if (auto rawList = detail::sharedCast<listAST>(list)) {
-                auto carValue = dyn_cast<Constant>(GeneratorGlobalValue(rawList->Car));
 
-                std::vector<llvm::Constant*> listAtom {
-                    carValue,
+                static auto listType = StructType::create(this->context.get(), "consList");
+                static std::vector<llvm::Type*> consMembers{
+                    this->Builder->getInt32Ty(),
+                    llvm::PointerType::getUnqual(listType)
                 };
-                
+                listType->setBody(consMembers);
+
+                auto carValue = dyn_cast<Constant>(GeneratorGlobalValue(rawList->Car));
+                AllocaInst* cdrAlloca;
+
                 if(detail::sharedIsa<listAST>(rawList->Cdr)){
-                    listAtom.emplace_back(dyn_cast<Constant>(generateList(rawList->Cdr)));
+                    cdrAlloca = generateList(rawList->Cdr);
                 }else{
-                    std::vector<llvm::Constant*> CdrAtom {
+                    std::vector<llvm::Constant*> cdrAtom {
                         dyn_cast<Constant>(GeneratorGlobalValue(rawList->Cdr)),
                         llvm::ConstantPointerNull::get(
                          llvm::PointerType::getUnqual(listType)),
                     };
-                    auto listConstant = llvm::ConstantStruct::get(listType, CdrAtom);
-                    //auto cdrAlloca  = this->Builder->CreateAlloca(listType);
-                    //this->Builder->CreateStore(listConstant, cdrAlloca);
-                    listAtom.emplace_back(listConstant);
+                    auto nilTail = llvm::ConstantStruct::get(listType, cdrAtom);
+                    cdrAlloca = this->Builder->CreateAlloca(listType);
+                    this->Builder->CreateStore(nilTail, cdrAlloca);
                 }
 
-                return llvm::ConstantStruct::get(listType, listAtom);
+                auto listAlloca  = this->Builder->CreateAlloca(listType);
+                auto carPtr =  this->Builder->CreateStructGEP(listType, listAlloca, 0);
+                this->Builder->CreateStore(carValue, carPtr);
+                auto cdrPtr =  this->Builder->CreateStructGEP(listType, listAlloca, 1);
+                this->Builder->CreateStore(cdrAlloca, cdrPtr);
+                return listAlloca;
             }
         }
 

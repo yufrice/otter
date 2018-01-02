@@ -6,6 +6,7 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/ValueSymbolTable.h>
+#include <llvm/IR/Constants.h>
 #include <ast/ast.hpp>
 #include <logger/logger.hpp>
 #include <codegen/context.hpp>
@@ -36,9 +37,7 @@ namespace otter {
                 std::shared_ptr<variableAST>);
             llvm::Value* generateVariable(const std::shared_ptr<variableAST>&,
                                           auto);
-            llvm::Value* generateList(const std::shared_ptr<baseAST>&);
-            llvm::StructType* listType;
-            std::vector<llvm::Type*> consMembers;
+            llvm::AllocaInst* generateList(const std::shared_ptr<baseAST>&);
             llvm::Value* generateifStmt(const std::shared_ptr<baseAST>&);
             llvm::Value* generateCond(const std::shared_ptr<baseAST>&);
             llvm::Value* generateString(std::shared_ptr<variableAST>);
