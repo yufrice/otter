@@ -1,4 +1,4 @@
-#Build
+# Build
 
 ## Requirements
 
@@ -19,7 +19,6 @@
 	'make -j'
 
 # Usages
-
 'USAGE: otterc [options] <input>'
 
 'OPTIONS:'
