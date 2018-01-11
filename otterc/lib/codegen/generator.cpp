@@ -8,20 +8,15 @@ namespace otter {
 
         Generator::Generator()
             : Builder(new IRBuilder<>(context.get())),
-              Module(new llvm::Module("OtterModule", context.get())){
-                  logger._assert("Build Module");
-              };
+              Module(new llvm::Module("OtterModule", context.get())) {
+            logger._assert("Build Module");
+        };
 
         Generator::~Generator() { delete this->Builder; }
 
         llvm::Instruction* Generator::addModuleInst(llvm::Instruction* inst,
                                                     bool flag) {
-            // if (flag) {
             this->Builder->Insert(inst);
-            // } else {
-            //     auto retEnd = --(this->Entry->end());
-            //     this->Entry->getInstList().insert(retEnd, inst);
-            // }
             return inst;
         }
 
@@ -37,8 +32,6 @@ namespace otter {
 
             this->Entry = BasicBlock::Create(context.get(), "entry", mainFunc);
             Builder->SetInsertPoint(this->Entry);
-
-            // init List Type
 
             for (auto stmt : mod->Stmt) {
                 if (detail::sharedIsa<variableAST>(stmt)) {
@@ -166,45 +159,48 @@ namespace otter {
                 if (detail::type2type(value->getType(), this->context.get()) !=
                     var->Type) {
                     throw detail::typeError(
-                        "invConv", ast::getType(detail::type2type(
-                                       value->getType(), this->context.get())),
+                        "invConv",
+                        ast::getType(detail::type2type(value->getType(),
+                                                       this->context.get())),
                         ast::getType(var->Type), var->Name);
                 }
                 return new StoreInst(value, gvar);
             }
         }
 
-
-        AllocaInst* Generator::generateList(const std::shared_ptr<baseAST>& list) {
+        AllocaInst* Generator::generateList(
+            const std::shared_ptr<baseAST>& list) {
             if (auto rawList = detail::sharedCast<listAST>(list)) {
-
-                static auto listType = StructType::create(this->context.get(), "consList");
+                static auto listType =
+                    StructType::create(this->context.get(), "consList");
                 static std::vector<llvm::Type*> consMembers{
                     this->Builder->getInt32Ty(),
-                    llvm::PointerType::getUnqual(listType)
-                };
+                    llvm::PointerType::getUnqual(listType)};
                 listType->setBody(consMembers);
 
-                auto carValue = dyn_cast<Constant>(GeneratorGlobalValue(rawList->Car));
+                auto carValue =
+                    dyn_cast<Constant>(GeneratorGlobalValue(rawList->Car));
                 AllocaInst* cdrAlloca;
 
-                if(detail::sharedIsa<listAST>(rawList->Cdr)){
+                if (detail::sharedIsa<listAST>(rawList->Cdr)) {
                     cdrAlloca = generateList(rawList->Cdr);
-                }else{
-                    std::vector<llvm::Constant*> cdrAtom {
+                } else {
+                    std::vector<llvm::Constant*> cdrAtom{
                         dyn_cast<Constant>(GeneratorGlobalValue(rawList->Cdr)),
                         llvm::ConstantPointerNull::get(
-                         llvm::PointerType::getUnqual(listType)),
+                            llvm::PointerType::getUnqual(listType)),
                     };
                     auto nilTail = llvm::ConstantStruct::get(listType, cdrAtom);
-                    cdrAlloca = this->Builder->CreateAlloca(listType);
+                    cdrAlloca    = this->Builder->CreateAlloca(listType);
                     this->Builder->CreateStore(nilTail, cdrAlloca);
                 }
 
-                auto listAlloca  = this->Builder->CreateAlloca(listType);
-                auto carPtr =  this->Builder->CreateStructGEP(listType, listAlloca, 0);
+                auto listAlloca = this->Builder->CreateAlloca(listType);
+                auto carPtr =
+                    this->Builder->CreateStructGEP(listType, listAlloca, 0);
                 this->Builder->CreateStore(carValue, carPtr);
-                auto cdrPtr =  this->Builder->CreateStructGEP(listType, listAlloca, 1);
+                auto cdrPtr =
+                    this->Builder->CreateStructGEP(listType, listAlloca, 1);
                 this->Builder->CreateStore(cdrAlloca, cdrPtr);
                 return listAlloca;
             }
@@ -487,8 +483,9 @@ namespace otter {
                 if (detail::pointerType(ret->getType()) !=
                     detail::type2type(var->Type, this->context.get())) {
                     throw detail::typeError(
-                        "invConv", getType(detail::type2type(
-                                       ret->getType(), this->context.get())),
+                        "invConv",
+                        getType(detail::type2type(ret->getType(),
+                                                  this->context.get())),
                         getType(var->Type), "ret");
                 }
                 this->Builder->SetInsertPoint(mEntry);
