@@ -321,7 +321,8 @@ namespace otter {
 
                 //ToDo type check
                 auto args = call->Args.at(0);
-                if(detail::sharedIsa<identifierAST>(args)){
+                if(detail::sharedIsa<identifierAST>(args) | 
+                    detail::sharedIsa<funcCallAST>(args)){
                     auto ident = GeneratorStatement(args);
                     if(call->Name == "car"){
                         auto car = this->Builder->CreateStructGEP(detail::pointerType(ident->getType()), ident, 0);

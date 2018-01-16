@@ -115,9 +115,8 @@ namespace otter {
                     logger._assert("Build funcCallAST : " + name);
                     const std::vector<std::string> buildin{
                         "print",
-                        "car",
-                        "cdr",
-                        "cons",
+                        "car", "cdr", "cons",
+                        "map",
                         "eq", "neq",
                         "=",    "<>",
                         ">", "<", ">=", "<=",
