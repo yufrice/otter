@@ -41,10 +41,11 @@ namespace otter {
             llvm::Value* generateifStmt(const std::shared_ptr<baseAST>&);
             llvm::Value* generateCond(const std::shared_ptr<baseAST>&);
             llvm::Value* generateString(std::shared_ptr<variableAST>);
-            llvm::Instruction* generateCallFunc(
-                const std::shared_ptr<baseAST>&);
-            llvm::Instruction* generateLOp(const std::shared_ptr<baseAST>&);
-            llvm::CallInst* generatePrint(const std::shared_ptr<baseAST>&);
+            llvm::Instruction* generateCallFunc(const std::shared_ptr<baseAST>&);
+            llvm::Instruction* generateLOp(const std::shared_ptr<funcCallAST>&);
+            llvm::Instruction* generateReserved(const std::shared_ptr<funcCallAST>&);
+            llvm::Instruction* generateListGep(const std::shared_ptr<funcCallAST>&);
+            llvm::CallInst* generatePrint(const std::shared_ptr<funcCallAST>&);
             llvm::Function* GeneratorFunction(std::shared_ptr<variableAST>);
             llvm::Value* GeneratorStatement(std::shared_ptr<baseAST>);
             llvm::Value* GeneratorGlobalValue(

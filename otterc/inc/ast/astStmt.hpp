@@ -104,12 +104,32 @@ namespace otter {
             }
         };
 
+
         struct funcCallAST : public baseAST {
             std::string Name;
             std::vector<std::shared_ptr<baseAST>> Args;
+            bool reserved;
 
             funcCallAST(std::string name)
-                : baseAST(AstID::FuncCallID), Name(name){};
+                : baseAST(AstID::FuncCallID), Name(name), reserved(false){
+                    logger._assert("Build funcCallAST : " + name);
+                    const std::vector<std::string> buildin{
+                        "print",
+                        "car",
+                        "cdr",
+                        "cons",
+                        "eq", "neq",
+                        "=",    "<>",
+                        ">", "<", ">=", "<=",
+                    };
+                    if(buildin.end() != std::find(
+                        buildin.begin(),buildin.end(),
+                        name
+                    )){
+                        this->reserved = true;
+                        logger._assert("Buildin found");
+                    }
+                };
             static inline bool classof(baseAST const* base) {
                 return base->getID() == AstID::FuncCallID;
             }

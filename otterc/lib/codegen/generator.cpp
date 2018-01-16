@@ -278,76 +278,108 @@ namespace otter {
         Instruction* Generator::generateCallFunc(
             const std::shared_ptr<baseAST>& expr) {
             std::vector<llvm::Value*> args;
-            if (auto rawCall = detail::sharedCast<funcCallAST>(expr)) {
-                if (rawCall->Name == "print") {
-                    return generatePrint(expr);
-                } else if (rawCall->Name == "=" | rawCall->Name == ">" |
-                           rawCall->Name == "<" | rawCall->Name == ">=" |
-                           rawCall->Name == "<=" | rawCall->Name == "<>") {
-                    return generateLOp(expr);
-                } else {
-                    if (auto cf = this->Module->getFunction(rawCall->Name)) {
-                        for (auto arg = cf->arg_begin(); arg != cf->arg_end();
-                             ++arg) {
-                            this->context.setType(arg->getType());
-                        }
-                        for (auto arg : rawCall->Args) {
-                            args.emplace_back(GeneratorStatement(arg));
-                        }
-                        return CallInst::Create(cf, args);
+            if (detail::sharedIsa<funcCallAST>(expr)) {
+                if(auto call = std::dynamic_pointer_cast<funcCallAST>(expr)){
+                    if (call->reserved) {
+                        return generateReserved(call);
                     } else {
-                        throw std::string(rawCall->Name + " was not declar");
+                        if (auto cf = this->Module->getFunction(call->Name)) {
+                            for (auto arg = cf->arg_begin(); arg != cf->arg_end();
+                                ++arg) {
+                                this->context.setType(arg->getType());
+                            }
+                            for (auto arg : call->Args) {
+                                args.emplace_back(GeneratorStatement(arg));
+                            }
+                            return CallInst::Create(cf, args);
+                        } else {
+                            throw std::string(call->Name + " was not declar");
+                        }
                     }
                 }
             }
         }
 
-        Instruction* Generator::generateLOp(
-            const std::shared_ptr<baseAST>& expr) {
-            if (auto rawCall = detail::sharedCast<funcCallAST>(expr)) {
-                if (rawCall->Args.size() > 2) {
-                    throw std::string("too many arguments to function op(any)");
-                } else if (rawCall->Args.size() == 0) {
-                    throw std::string("too few arguments to function op(any)");
+        Instruction* Generator::generateReserved(
+            const std::shared_ptr<funcCallAST>& call) {
+                if(call->Name == "print"){
+                    return generatePrint(call);
+                }else if(call->Name == "car" | call->Name == "cdr"){
+                    return generateListGep(call);
+                }else{
+                    return generateLOp(call);
                 }
-                auto args0 = rawCall->Args.at(0);
-                auto args1 = rawCall->Args.at(1);
-                auto lhs   = GeneratorStatement(args0);
-                auto rhs   = GeneratorStatement(args1);
-
-                Instruction::OtherOps type;
-
-                if (lhs->getType() != rhs->getType()) {
-                    throw std::string("dame");
-                } else if (lhs->getType()->isIntegerTy()) {
-                    type = Instruction::ICmp;
-                } else if (lhs->getType()->isDoubleTy()) {
-                    type = Instruction::FCmp;
-                } else {
-                    throw std::string("dame");
-                }
-
-                return CmpInst::Create(
-                    type,
-                    detail::op2lop(
-                        rawCall->Name,
-                        detail::type2type(lhs->getType(), this->context.get())),
-                    lhs, rhs);
             }
+
+        Instruction* Generator::generateListGep(
+            const std::shared_ptr<funcCallAST>& call) {
+                if (call->Args.size() > 2) {
+                    throw std::string("too many arguments to function ") + call->Name;
+                } else if (call->Args.size() == 0) {
+                    throw std::string("too few arguments to function ") + call->Name;
+                }
+
+                //ToDo type check
+                auto args = call->Args.at(0);
+                if(detail::sharedIsa<identifierAST>(args)){
+                    auto ident = GeneratorStatement(args);
+                    if(call->Name == "car"){
+                        auto car = this->Builder->CreateStructGEP(detail::pointerType(ident->getType()), ident, 0);
+                        return new LoadInst(car,"");
+                    }else{
+                        auto cdr = this->Builder->CreateStructGEP(detail::pointerType(ident->getType()), ident, 1);
+                        return new LoadInst(cdr,"");
+                    }
+                    return nullptr;
+                }else{
+                    throw std::string("type error : ")+call->Name;
+                }
+            }
+
+        Instruction* Generator::generateLOp(
+            const std::shared_ptr<funcCallAST>& expr) {
+            if (expr->Args.size() > 2) {
+               throw std::string("too many arguments to function op(any)");
+            } else if (expr->Args.size() == 0) {
+               throw std::string("too few arguments to function op(any)");
+            }
+
+            auto args0 = expr->Args.at(0);
+            auto args1 = expr->Args.at(1);
+            auto lhs   = GeneratorStatement(args0);
+            auto rhs   = GeneratorStatement(args1);
+
+            Instruction::OtherOps type;
+
+            if (lhs->getType() != rhs->getType()) {
+                throw std::string("dame");
+            } else if (lhs->getType()->isIntegerTy()) {
+                type = Instruction::ICmp;
+            } else if (lhs->getType()->isDoubleTy()) {
+                type = Instruction::FCmp;
+            } else {
+                throw std::string("dame");
+            }
+
+            return CmpInst::Create(
+                type,
+                detail::op2lop(
+                expr->Name,
+                detail::type2type(lhs->getType(), this->context.get())),
+                lhs, rhs);
         }
 
         CallInst* Generator::generatePrint(
-            const std::shared_ptr<baseAST>& expr) {
-            if (auto rawCall = detail::sharedCast<funcCallAST>(expr)) {
-                if (rawCall->Args.size() != 1) {
+            const std::shared_ptr<funcCallAST>& call) {
+                if (call->Args.size() != 1) {
                     throw std::string(
                         "too many arguments to function print(any)");
-                } else if (rawCall->Args.size() == 0) {
+                } else if (call->Args.size() == 0) {
                     throw std::string(
                         "too few arguments to function print(any)");
                 }
 
-                if (auto args = rawCall->Args.at(0)) {
+                if (auto args = call->Args.at(0)) {
                     auto val  = GeneratorStatement(args);
                     auto type = val->getType();
                     if (type->isPointerTy()) {
@@ -408,7 +440,6 @@ namespace otter {
                         this->Module->getOrInsertFunction("printf", func_type));
                     return CallInst::Create(pFunc, argValue);
                 }
-            }
         }
 
         Function* Generator::GeneratorFunction(

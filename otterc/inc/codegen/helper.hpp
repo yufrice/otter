@@ -175,13 +175,17 @@ namespace otter {
             decltype(auto) op2lop = [](const std::string& op,
                                        const ast::TypeID& type) {
                 auto pair = std::make_pair(op, type);
-                if (equalPair(pair, "=", ast::TypeID::Int)) {
+                if (equalPair(pair, "=", ast::TypeID::Int) |
+                    equalPair(pair, "eq", ast::TypeID::Int)) {
                     return llvm::CmpInst::ICMP_EQ;
-                } else if (equalPair(pair, "=", ast::TypeID::Double)) {
+                } else if (equalPair(pair, "=", ast::TypeID::Double) |
+                            equalPair(pair, "eq", ast::TypeID::Double)) {
                     return llvm::CmpInst::FCMP_OEQ;
-                } else if (equalPair(pair, "<>", ast::TypeID::Int)) {
+                } else if (equalPair(pair, "<>", ast::TypeID::Int) |
+                            equalPair(pair, "<>", ast::TypeID::Int)) {
                     return llvm::CmpInst::ICMP_NE;
-                } else if (equalPair(pair, "<>", ast::TypeID::Double)) {
+                } else if (equalPair(pair, "<>", ast::TypeID::Double) |
+                            equalPair(pair, "<>", ast::TypeID::Double)) {
                     return llvm::CmpInst::FCMP_ONE;
                 } else if (equalPair(pair, ">", ast::TypeID::Int)) {
                     return llvm::CmpInst::ICMP_SGT;
