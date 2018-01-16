@@ -206,6 +206,38 @@ namespace otter {
             }
         }
 
+        AllocaInst* Generator::generateList(std::vector<Value*> list){
+                static auto listType =
+                    StructType::create(this->context.get(), "consList");
+                static std::vector<llvm::Type*> consMembers{
+                    this->Builder->getInt32Ty(),
+                    llvm::PointerType::getUnqual(listType)};
+                listType->setBody(consMembers);
+            if(list.size() == 1){
+                    std::vector<llvm::Constant*> atom{
+                        dyn_cast<Constant>(list.front()),
+                        llvm::ConstantPointerNull::get(
+                            llvm::PointerType::getUnqual(listType)),
+                    };
+                    auto constantStruct = llvm::ConstantStruct::get(listType, atom);
+                    auto alloca    = this->Builder->CreateAlloca(listType);
+                    this->Builder->CreateStore(alloca, constantStruct);
+                    return alloca;
+            }else{
+                auto listAlloca = this->Builder->CreateAlloca(listType);
+                auto carPtr =
+                    this->Builder->CreateStructGEP(listType, listAlloca, 0);
+                this->Builder->CreateStore(list.back(), carPtr);
+                list.pop_back();
+                auto cdrAlloca = generateList(list);
+                auto cdrPtr =
+                    this->Builder->CreateStructGEP(listType, listAlloca, 1);
+                this->Builder->CreateStore(cdrAlloca, cdrPtr);
+                return listAlloca;
+            }
+            return nullptr;
+        }
+
         Value* Generator::generateifStmt(const std::shared_ptr<baseAST>& ast) {
             if (auto ifStmt = detail::sharedCast<ifStatementAST>(ast)) {
                 auto currentBB    = this->Builder->GetInsertBlock();

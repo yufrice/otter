@@ -38,6 +38,7 @@ namespace otter {
             llvm::Value* generateVariable(const std::shared_ptr<variableAST>&,
                                           auto);
             llvm::AllocaInst* generateList(const std::shared_ptr<baseAST>&);
+            llvm::AllocaInst* generateList(std::vector<llvm::Value*>);
             llvm::Value* generateifStmt(const std::shared_ptr<baseAST>&);
             llvm::Value* generateCond(const std::shared_ptr<baseAST>&);
             llvm::Value* generateString(std::shared_ptr<variableAST>);
