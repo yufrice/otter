@@ -12,6 +12,8 @@
 #include <codegen/context.hpp>
 #include <codegen/helper.hpp>
 
+#include <llvm/Support/raw_ostream.h>
+
 namespace otter {
     namespace codegen {
         using namespace otter::ast;
@@ -47,6 +49,7 @@ namespace otter {
             llvm::Instruction* generateLOp(const std::shared_ptr<funcCallAST>&);
             llvm::Instruction* generateReserved(const std::shared_ptr<funcCallAST>&);
             llvm::Instruction* generatemap(const std::shared_ptr<funcCallAST>&);
+            llvm::Instruction* generateHighOrder(const std::shared_ptr<funcCallAST>&);
             llvm::Instruction* generateListGep(const std::shared_ptr<funcCallAST>&);
             llvm::CallInst* generatePrint(const std::shared_ptr<funcCallAST>&);
             llvm::Function* GeneratorFunction(std::shared_ptr<variableAST>);

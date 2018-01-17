@@ -203,6 +203,7 @@ namespace otter {
                     this->Builder->CreateStore(nilTail, cdrAlloca);
                 }
 
+
                 auto listAlloca = this->Builder->CreateAlloca(listType);
                 auto carPtr =
                     this->Builder->CreateStructGEP(listType, listAlloca, 0);
@@ -215,15 +216,18 @@ namespace otter {
         }
 
         AllocaInst* Generator::generateList(std::vector<Value*> list){
+            logger._assert("add list(vec)");
+
             if(list.size() == 1){
-                    std::vector<llvm::Constant*> atom{
-                        dyn_cast<Constant>(list.front()),
-                        llvm::ConstantPointerNull::get(
-                            llvm::PointerType::getUnqual(listType)),
-                    };
-                    auto constantStruct = llvm::ConstantStruct::get(listType, atom);
+                    logger._assert("tail list(vec)");
                     auto alloca    = this->Builder->CreateAlloca(listType);
-                    this->Builder->CreateStore(alloca, constantStruct);
+                    auto carPtr =
+                        this->Builder->CreateStructGEP(listType, alloca, 0);
+                    this->Builder->CreateStore(list.front(), carPtr);
+                    auto cdrPtr =
+                        this->Builder->CreateStructGEP(listType, alloca, 1);
+                    this->Builder->CreateStore(llvm::ConstantPointerNull::get(
+                            llvm::PointerType::getUnqual(listType)), cdrPtr);
                     return alloca;
             }else{
                 auto listAlloca = this->Builder->CreateAlloca(listType);
@@ -341,7 +345,7 @@ namespace otter {
                 }else if(call->Name == "car" | call->Name == "cdr"){
                     return generateListGep(call);
                 }else if(call->Name == "map"){
-                    throw std::string("a");
+                    return generateHighOrder(call);
                 }else{
                     return generateLOp(call);
                 }
@@ -404,6 +408,60 @@ namespace otter {
                 expr->Name,
                 detail::type2type(lhs->getType(), this->context.get())),
                 lhs, rhs);
+        }
+
+        Instruction* Generator::generateHighOrder(
+            const std::shared_ptr<funcCallAST>& call){
+                if (call->Args.size() != 2) {
+                    throw std::string(
+                        "too invalid arguments to function print(any)");
+                }
+
+                auto argsFunc = call->Args.at(0);
+                auto argsList = call->Args.at(1);
+
+                llvm::Function* function;
+                if(auto callFunc = detail::shared4Shared<identifierAST>(argsFunc)){
+                    if (function = this->Module->getFunction(callFunc->Ident));
+                }else if(detail::sharedIsa<functionAST>(argsFunc)){
+                    throw std::string("lambda");
+                }else{
+                    throw std::string("invalid");
+                }
+
+                llvm::Value* list;
+                if(detail::sharedIsa<identifierAST>(argsList) | 
+                    detail::sharedIsa<funcCallAST>(argsList)){
+                        list = GeneratorStatement(argsList);
+                }
+
+
+
+                decltype(auto) list2vec = [this](llvm::Value* list)
+                        -> std::vector<llvm::Value*>{
+                            std::vector<llvm::Value*> valueVec;
+                            auto len = 2;
+                            while(len--){
+                                if(auto car = this->Builder->CreateStructGEP(detail::pointerType(list->getType()), list, 0)){
+                                    valueVec.emplace_back(this->Builder->CreateLoad(car,""));
+                                    list = this->Builder->CreateStructGEP(detail::pointerType(list->getType()), list, 1);
+                                    list = this->Builder->CreateLoad(list);
+                                }else{
+                                    break;
+                                }
+
+                            }
+                            return valueVec;
+                };
+
+                auto vec = list2vec(list);
+                std::vector<Value*> v;
+                for(auto itr : vec){
+                     v.emplace_back(this->Builder->CreateCall(function, itr));
+                }
+
+                return generateList(v);
+
         }
 
         CallInst* Generator::generatePrint(
