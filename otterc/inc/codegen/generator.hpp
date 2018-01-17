@@ -31,6 +31,7 @@ namespace otter {
             std::unique_ptr<llvm::Module> Module;
             llvm::Instruction* addModuleInst(llvm::Instruction*,
                                              bool flag = false);
+            llvm::StructType* listType;
             llvm::Value* generateGlovalVariable(
                 const std::shared_ptr<variableAST>&);
             llvm::GlobalVariable* GeneratorGlobalString(
@@ -45,9 +46,11 @@ namespace otter {
             llvm::Instruction* generateCallFunc(const std::shared_ptr<baseAST>&);
             llvm::Instruction* generateLOp(const std::shared_ptr<funcCallAST>&);
             llvm::Instruction* generateReserved(const std::shared_ptr<funcCallAST>&);
+            llvm::Instruction* generatemap(const std::shared_ptr<funcCallAST>&);
             llvm::Instruction* generateListGep(const std::shared_ptr<funcCallAST>&);
             llvm::CallInst* generatePrint(const std::shared_ptr<funcCallAST>&);
             llvm::Function* GeneratorFunction(std::shared_ptr<variableAST>);
+            llvm::Function* GeneratorFunction(std::shared_ptr<baseAST>);
             llvm::Value* GeneratorStatement(std::shared_ptr<baseAST>);
             llvm::Value* GeneratorGlobalValue(
                 const std::shared_ptr<baseAST>&,

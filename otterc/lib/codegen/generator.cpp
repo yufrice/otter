@@ -9,7 +9,13 @@ namespace otter {
         Generator::Generator()
             : Builder(new IRBuilder<>(context.get())),
               Module(new llvm::Module("OtterModule", context.get())) {
-            logger._assert("Build Module");
+                listType = StructType::create(this->context.get(), "consList");
+                std::vector<llvm::Type*> consMembers{
+                    this->Builder->getInt32Ty(),
+                    llvm::PointerType::getUnqual(listType)
+                };
+                listType->setBody(consMembers);
+                logger._assert("Build Module");
         };
 
         Generator::~Generator() { delete this->Builder; }
@@ -32,6 +38,7 @@ namespace otter {
 
             this->Entry = BasicBlock::Create(context.get(), "entry", mainFunc);
             Builder->SetInsertPoint(this->Entry);
+
 
             for (auto stmt : mod->Stmt) {
                 if (detail::sharedIsa<variableAST>(stmt)) {
@@ -70,12 +77,20 @@ namespace otter {
             const std::shared_ptr<variableAST>& var) {
             logger._assert("Add Global Variable : " + var->Name);
             if (detail::sharedIsa<functionAST>(var->Val)) {
-                auto list = this->GeneratorFunction(var);
-                list->setName(var->Name);
-                return list;
+                return this->GeneratorFunction(var);
             } else if (detail::sharedIsa<listAST>(var->Val)) {
                 auto list = generateList(var->Val);
                 list->setName(var->Name);
+                /*
+                auto gvar = new GlobalVariable(
+                   *this->Module,
+                   listType, false,
+                   GlobalVariable::LinkageTypes::PrivateLinkage, nullptr,
+                   var->Name);
+               auto l = this->Builder->CreateLoad(list);
+               this->Builder->CreateStore(l, gvar);
+                return gvar;
+                */
                 return list;
             } else if (detail::sharedIsa<ifStatementAST>(var->Val)) {
                 auto gvar = new GlobalVariable(
@@ -171,13 +186,6 @@ namespace otter {
         AllocaInst* Generator::generateList(
             const std::shared_ptr<baseAST>& list) {
             if (auto rawList = detail::sharedCast<listAST>(list)) {
-                static auto listType =
-                    StructType::create(this->context.get(), "consList");
-                static std::vector<llvm::Type*> consMembers{
-                    this->Builder->getInt32Ty(),
-                    llvm::PointerType::getUnqual(listType)};
-                listType->setBody(consMembers);
-
                 auto carValue =
                     dyn_cast<Constant>(GeneratorGlobalValue(rawList->Car));
                 AllocaInst* cdrAlloca;
@@ -207,12 +215,6 @@ namespace otter {
         }
 
         AllocaInst* Generator::generateList(std::vector<Value*> list){
-                static auto listType =
-                    StructType::create(this->context.get(), "consList");
-                static std::vector<llvm::Type*> consMembers{
-                    this->Builder->getInt32Ty(),
-                    llvm::PointerType::getUnqual(listType)};
-                listType->setBody(consMembers);
             if(list.size() == 1){
                     std::vector<llvm::Constant*> atom{
                         dyn_cast<Constant>(list.front()),
@@ -338,6 +340,8 @@ namespace otter {
                     return generatePrint(call);
                 }else if(call->Name == "car" | call->Name == "cdr"){
                     return generateListGep(call);
+                }else if(call->Name == "map"){
+                    throw std::string("a");
                 }else{
                     return generateLOp(call);
                 }
@@ -600,6 +604,8 @@ namespace otter {
                 }
             } else if (detail::sharedIsa<ifStatementAST>(stmt)) {
                 return generateifStmt(stmt);
+            } else if (detail::sharedIsa<listAST>(stmt)) {
+                return generateList(stmt);
             }
         }
 
@@ -618,6 +624,10 @@ namespace otter {
                                                           0, var->Name);
                 this->Builder->CreateStore(constant, alloca);
                 return vTable->lookup(var->Name);
+            } else if (detail::sharedIsa<listAST>(var->Val)) {
+                auto list = generateList(var->Val);
+                list->setName(var->Name);
+                return list;
             }
 
             Value* constant;

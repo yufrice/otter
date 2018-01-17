@@ -139,7 +139,7 @@ namespace otter {
              x3::string("<")[detail::sharedAssign<funcCallAST>()] |
              id[detail::sharedAssign<funcCallAST>()]) >>
             *(funcCall[detail::addAST()] | string[detail::addAST<stringAST>()] |
-              addExpr[detail::addAST()]) >>
+              addExpr[detail::addAST()] | function[detail::addAST()]) >>
             x3::lit(')');
 
         auto const module_def =
