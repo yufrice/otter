@@ -454,12 +454,20 @@ namespace otter {
                             return valueVec;
                 };
 
+                FunctionType* func_type = FunctionType::get(
+                    Type::getInt32Ty(context.get()),
+                    PointerType::get(llvm::Type::getInt8Ty(context.get()),
+                    0),
+                    true);
+                Function* pFunc = dyn_cast<Function>(
+                    this->Module->getOrInsertFunction("printf", func_type));
                 auto vec = list2vec(list);
                 std::vector<Value*> v;
                 for(auto itr : vec){
-                     v.emplace_back(this->Builder->CreateCall(function, itr));
+                     v.emplace_back(this->Builder->CreateCall(pFunc, itr));
                 }
 
+                return new LoadInst(list);
                 return generateList(v);
 
         }
